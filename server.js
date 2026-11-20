@@ -26,6 +26,11 @@ async function initDB() {
                 profile_pic_url VARCHAR(255),
                 is_admin BOOLEAN DEFAULT FALSE
             );
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT 'Nigeria';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT 'Nigeria';
             ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
             CREATE TABLE IF NOT EXISTS subscriptions (
@@ -225,4 +230,5 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
