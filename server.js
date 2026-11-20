@@ -39,6 +39,7 @@ async function initDB() {
                 academic_class VARCHAR(255),
                 CONSTRAINT unique_user_class UNIQUE(user_id, academic_class)
             );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_sub_user_class ON subscriptions(user_id, academic_class);
             CREATE TABLE IF NOT EXISTS student_results (
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -183,14 +184,16 @@ app.post("/admin/remove-winner", async (req, res) => {
 app.post("/paystack/initialize", (req, res) => {
     if (!req.session.userId) return res.redirect("/login");
     const { classId, termNumber } = req.body;
+    const uid = req.session.userId;
     const host = req.get("host");
     const proto = req.headers["x-forwarded-proto"] || req.protocol;
-    const callbackUrl = `${proto}://${host}/paystack/callback?classId=${encodeURIComponent(classId)}&termNumber=${encodeURIComponent(termNumber)}`;
+    const callbackUrl = `${proto}://${host}/paystack/callback?uid=${encodeURIComponent(uid)}&classId=${encodeURIComponent(classId)}&termNumber=${encodeURIComponent(termNumber)}`;
     const payload = JSON.stringify({
         email: req.session.user.email,
         amount: 600000,
         currency: "NGN",
-        callback_url: callbackUrl
+        callback_url: callbackUrl,
+        metadata: { user_id: uid, class_id: classId, term_number: termNumber }
     });
     const options = {
         hostname: "api.paystack.co",
@@ -212,7 +215,7 @@ app.post("/paystack/initialize", (req, res) => {
                 if (data.status && data.data && data.data.authorization_url) {
                     return res.redirect(data.data.authorization_url);
                 }
-                res.send("<h2>Paystack initialization error: " + (data.message || "Check Secret Key") + " <a href='/dashboard'>Back</a></h2>");
+                res.send("<h2>Paystack error: " + (data.message || "Check Secret Key") + " <a href='/dashboard'>Back</a></h2>");
             } catch (e) { res.status(500).send("Payment gateway error."); }
         });
     });
@@ -222,9 +225,9 @@ app.post("/paystack/initialize", (req, res) => {
 });
 
 app.get("/paystack/callback", (req, res) => {
-    if (!req.session.userId) return res.redirect("/login");
-    const { reference, classId, termNumber } = req.query;
+    const reference = req.query.reference || req.query.trxref;
     if (!reference) return res.redirect("/dashboard");
+
     const options = {
         hostname: "api.paystack.co",
         port: 443,
@@ -239,17 +242,36 @@ app.get("/paystack/callback", (req, res) => {
             try {
                 const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
                 if (data.status && data.data && data.data.status === "success") {
-                    const key = String(classId).toUpperCase().trim() + "_TERM_" + String(termNumber).trim();
-                    await pool.query("INSERT INTO subscriptions (user_id, academic_class) VALUES ($1, $2) ON CONFLICT (user_id, academic_class) DO NOTHING", [req.session.userId, key]);
+                    const meta = data.data.metadata || {};
+                    const uid = Number(req.session.userId || req.query.uid || meta.user_id);
+                    const cid = String(req.query.classId || meta.class_id || "").toUpperCase().trim();
+                    const term = String(req.query.termNumber || meta.term_number || "").trim();
+
+                    if (uid && cid && term) {
+                        const key = `${cid}_TERM_${term}`;
+                        await pool.query(
+                            "INSERT INTO subscriptions (user_id, academic_class) VALUES ($1, $2) ON CONFLICT (user_id, academic_class) DO NOTHING",
+                            [uid, key]
+                        );
+                        // Restore session automatically if browser dropped cookie during Paystack redirect
+                        if (!req.session.userId) {
+                            const uRes = await pool.query("SELECT * FROM users WHERE id = $1", [uid]);
+                            if (uRes.rows.length > 0) {
+                                const u = uRes.rows;
+                                req.session.userId = u.id;
+                                req.session.isAdmin = u.is_admin || false;
+                                req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" };
+                            }
+                        }
+                    }
                 }
-            } catch (e) {}
-            res.redirect("/dashboard");
+            } catch (e) { console.error("Callback verify error:", e.message); }
+            req.session.save(() => res.redirect("/dashboard"));
         });
     });
     vReq.on("error", () => res.redirect("/dashboard"));
     vReq.end();
 });
-
 app.post("/verify-inline-payment", (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);
     const { classId, termNumber, reference } = req.body;
@@ -300,6 +322,7 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
