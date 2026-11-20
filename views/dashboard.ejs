@@ -71,7 +71,7 @@
                                     <% } %>
                                 <% } else { %>
                                     <small style="color:#dc2626">🔒 Locked (₦6,000)</small>
-                                    <button type="button" class="btn-pay" data-key="<%= typeof publicKey !== 'undefined' ? publicKey : '' %>" data-email="<%= user ? user.email : 'test@student.com' %>" data-class="<%= cid %>" data-term="<%= t %>" onclick="payNow(this)">💳 Pay ₦6,000</button>
+                                    <form action="/paystack/initialize" method="POST" style="margin:0;"><input type="hidden" name="classId" value="<%= cid %>"><input type="hidden" name="termNumber" value="<%= t %>"><button type="submit" class="btn-pay">💳 Pay ₦6,000</button></form>
                                 <% } %>
                             </div>
                         <% } %>
@@ -103,6 +103,7 @@
     </script>
 </body>
 </html>
+
 
 
 

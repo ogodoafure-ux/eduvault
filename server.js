@@ -180,6 +180,76 @@ app.post("/admin/remove-winner", async (req, res) => {
     } catch (err) { res.status(500).send("Error removing winner."); }
 });
 
+app.post("/paystack/initialize", (req, res) => {
+    if (!req.session.userId) return res.redirect("/login");
+    const { classId, termNumber } = req.body;
+    const host = req.get("host");
+    const proto = req.headers["x-forwarded-proto"] || req.protocol;
+    const callbackUrl = `${proto}://${host}/paystack/callback?classId=${encodeURIComponent(classId)}&termNumber=${encodeURIComponent(termNumber)}`;
+    const payload = JSON.stringify({
+        email: req.session.user.email,
+        amount: 600000,
+        currency: "NGN",
+        callback_url: callbackUrl
+    });
+    const options = {
+        hostname: "api.paystack.co",
+        port: 443,
+        path: "/transaction/initialize",
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + String(process.env.PAYSTACK_SECRET_KEY || "").trim(),
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload)
+        }
+    };
+    const pReq = https.request(options, (pRes) => {
+        let chunks = [];
+        pRes.on("data", c => chunks.push(c));
+        pRes.on("end", () => {
+            try {
+                const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                if (data.status && data.data && data.data.authorization_url) {
+                    return res.redirect(data.data.authorization_url);
+                }
+                res.send("<h2>Paystack initialization error: " + (data.message || "Check Secret Key") + " <a href='/dashboard'>Back</a></h2>");
+            } catch (e) { res.status(500).send("Payment gateway error."); }
+        });
+    });
+    pReq.on("error", () => res.status(500).send("Network error connecting to Paystack."));
+    pReq.write(payload);
+    pReq.end();
+});
+
+app.get("/paystack/callback", (req, res) => {
+    if (!req.session.userId) return res.redirect("/login");
+    const { reference, classId, termNumber } = req.query;
+    if (!reference) return res.redirect("/dashboard");
+    const options = {
+        hostname: "api.paystack.co",
+        port: 443,
+        path: `/transaction/verify/${encodeURIComponent(reference)}`,
+        method: "GET",
+        headers: { "Authorization": "Bearer " + String(process.env.PAYSTACK_SECRET_KEY || "").trim() }
+    };
+    const vReq = https.request(options, (vRes) => {
+        let chunks = [];
+        vRes.on("data", c => chunks.push(c));
+        vRes.on("end", async () => {
+            try {
+                const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                if (data.status && data.data && data.data.status === "success") {
+                    const key = String(classId).toUpperCase().trim() + "_TERM_" + String(termNumber).trim();
+                    await pool.query("INSERT INTO subscriptions (user_id, academic_class) VALUES ($1, $2) ON CONFLICT (user_id, academic_class) DO NOTHING", [req.session.userId, key]);
+                }
+            } catch (e) {}
+            res.redirect("/dashboard");
+        });
+    });
+    vReq.on("error", () => res.redirect("/dashboard"));
+    vReq.end();
+});
+
 app.post("/verify-inline-payment", (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);
     const { classId, termNumber, reference } = req.body;
@@ -230,5 +300,6 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
