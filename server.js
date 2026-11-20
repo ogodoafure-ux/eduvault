@@ -181,6 +181,17 @@ app.post("/admin/remove-winner", async (req, res) => {
     } catch (err) { res.status(500).send("Error removing winner."); }
 });
 
+async function unlockStudentTerm(uid, cid, term) {
+    if (!uid || !cid || !term) return false;
+    const key = `${String(cid).toUpperCase().trim()}_TERM_${String(term).trim()}`;
+    const existing = await pool.query("SELECT id FROM subscriptions WHERE user_id = $1 AND academic_class = $2", [uid, key]);
+    if (existing.rows.length === 0) {
+        await pool.query("INSERT INTO subscriptions (user_id, academic_class) VALUES ($1, $2)", [uid, key]);
+    }
+    console.log(`✓ Unlocked ${key} for user_id=${uid}`);
+    return true;
+}
+
 app.post("/paystack/initialize", (req, res) => {
     if (!req.session.userId) return res.redirect("/login");
     const { classId, termNumber } = req.body;
@@ -215,6 +226,7 @@ app.post("/paystack/initialize", (req, res) => {
                 if (data.status && data.data && data.data.authorization_url) {
                     return res.redirect(data.data.authorization_url);
                 }
+                console.error("Paystack init failed:", data);
                 res.send("<h2>Paystack error: " + (data.message || "Check Secret Key") + " <a href='/dashboard'>Back</a></h2>");
             } catch (e) { res.status(500).send("Payment gateway error."); }
         });
@@ -226,6 +238,7 @@ app.post("/paystack/initialize", (req, res) => {
 
 app.get("/paystack/callback", (req, res) => {
     const reference = req.query.reference || req.query.trxref;
+    console.log("Paystack callback received:", req.query);
     if (!reference) return res.redirect("/dashboard");
 
     const options = {
@@ -241,27 +254,22 @@ app.get("/paystack/callback", (req, res) => {
         vRes.on("end", async () => {
             try {
                 const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                console.log("Paystack verify response:", data.status, data.message, data.data && data.data.status);
                 if (data.status && data.data && data.data.status === "success") {
                     const meta = data.data.metadata || {};
                     const uid = Number(req.session.userId || req.query.uid || meta.user_id);
                     const cid = String(req.query.classId || meta.class_id || "").toUpperCase().trim();
                     const term = String(req.query.termNumber || meta.term_number || "").trim();
 
-                    if (uid && cid && term) {
-                        const key = `${cid}_TERM_${term}`;
-                        await pool.query(
-                            "INSERT INTO subscriptions (user_id, academic_class) VALUES ($1, $2) ON CONFLICT (user_id, academic_class) DO NOTHING",
-                            [uid, key]
-                        );
-                        // Restore session automatically if browser dropped cookie during Paystack redirect
-                        if (!req.session.userId) {
-                            const uRes = await pool.query("SELECT * FROM users WHERE id = $1", [uid]);
-                            if (uRes.rows.length > 0) {
-                                const u = uRes.rows;
-                                req.session.userId = u.id;
-                                req.session.isAdmin = u.is_admin || false;
-                                req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" };
-                            }
+                    await unlockStudentTerm(uid, cid, term);
+
+                    if (uid && !req.session.userId) {
+                        const uRes = await pool.query("SELECT * FROM users WHERE id = $1", [uid]);
+                        if (uRes.rows.length > 0) {
+                            const u = uRes.rows;
+                            req.session.userId = u.id;
+                            req.session.isAdmin = u.is_admin || false;
+                            req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" };
                         }
                     }
                 }
@@ -269,8 +277,19 @@ app.get("/paystack/callback", (req, res) => {
             req.session.save(() => res.redirect("/dashboard"));
         });
     });
-    vReq.on("error", () => res.redirect("/dashboard"));
+    vReq.on("error", (err) => { console.error("Verify HTTPS error:", err.message); res.redirect("/dashboard"); });
     vReq.end();
+});
+
+app.post("/paystack/webhook", async (req, res) => {
+    try {
+        const event = req.body;
+        if (event && event.event === "charge.success" && event.data && event.data.metadata) {
+            const meta = event.data.metadata;
+            await unlockStudentTerm(Number(meta.user_id), meta.class_id, meta.term_number);
+        }
+    } catch (e) { console.error("Webhook error:", e.message); }
+    res.sendStatus(200);
 });
 app.post("/verify-inline-payment", (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);
@@ -322,6 +341,7 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
