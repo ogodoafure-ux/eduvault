@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVault | Admin & Grant Portal</title>
+    <style>
+        body { background-color: #f3f4f6; margin: 0; font-family: sans-serif; color: #1f2937; }
+        .navbar { background-color: #1e3a8a; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; color: white; }
+        .logo { font-size: 1.25rem; font-weight: 900; color: #ffffff; text-decoration: none; text-transform: uppercase; }
+        .logout-btn { color: #fca5a5; font-weight: 600; text-decoration: none; font-size: 0.875rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background-color: #ffffff; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; margin-bottom: 2rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end; margin-top: 1rem; }
+        label { display: block; font-size: 0.8rem; font-weight: bold; color: #374151; margin-bottom: 0.3rem; }
+        select { width: 100%; padding: 0.6rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.9rem; }
+        .btn-award { background-color: #f59e0b; color: #0f172a; border: none; padding: 0.65rem 1.2rem; border-radius: 0.5rem; font-weight: 900; cursor: pointer; font-size: 0.9rem; width: 100%; }
+        .btn-award:hover { background-color: #d97706; color: white; }
+        .btn-del { background-color: #ef4444; color: white; border: none; padding: 0.35rem 0.7rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.25rem; text-align: left; }
+        th, td { padding: 0.9rem; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
+        th { background-color: #f8fafc; color: #475569; text-transform: uppercase; font-size: 0.75rem; }
+        .download-btn { background-color: #10b981; color: white; padding: 0.4rem 0.8rem; border-radius: 0.35rem; text-decoration: none; font-weight: bold; font-size: 0.75rem; display: inline-block; }
+        .badge { background-color: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">EduVault <span style="color: #6ee7b7;">Admin & Grant Portal</span></a>
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <span style="font-size: 0.85rem;">Welcome, <strong><%= user.firstName %></strong></span>
+            <a href="/logout" class="logout-btn">Log Out</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="card" style="border-top: 4px solid #f59e0b;">
+            <h2 style="margin-top: 0; color: #1e3a8a;">🏆 Annual Academic Grant & Tech Award Publisher</h2>
+            <p style="color: #64748b; font-size: 0.875rem;">Select a student or pick one randomly. Published recipients immediately appear on the public homepage and receive a congratulations banner in their dashboard.</p>
+            
+            <form action="/admin/add-winner" method="POST" class="form-grid">
+                <div>
+                    <label>Select Student</label>
+                    <select name="studentId" required>
+                        <option value="RANDOM">🎲 Pick Random Student</option>
+                        <% students.forEach(s => { %>
+                            <option value="<%= s.id %>"><%= s.first_name %> <%= s.last_name %> (<%= s.email %>)</option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div>
+                    <label>School Category</label>
+                    <select name="level" required>
+                        <option value="Primary School Level">Primary School Level</option>
+                        <option value="Junior Secondary (JSS)">Junior Secondary (JSS)</option>
+                        <option value="Senior Secondary (SSS)">Senior Secondary (SSS)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Grant / Tech Prize</label>
+                    <select name="award" required>
+                        <option value="₦500,000 Cash Tuition Grant">₦500,000 Cash Tuition Grant</option>
+                        <option value="₦300,000 Cash Tuition Grant">₦300,000 Cash Tuition Grant</option>
+                        <option value="₦200,000 Cash Tuition Grant">₦200,000 Cash Tuition Grant</option>
+                        <option value="Brand-New Student Laptop">Brand-New Student Laptop</option>
+                        <option value="Educational Learning Tablet">Educational Learning Tablet</option>
+                        <option value="Brand-New Smartphone">Brand-New Smartphone</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn-award">Publish Grant Recipient</button>
+                </div>
+            </form>
+
+            <% if (winners.length > 0) { %>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Published Name</th>
+                            <th>Full Name & Email</th>
+                            <th>Category</th>
+                            <th>Award Won</th>
+                            <th>Claim Code</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% winners.forEach(w => { %>
+                            <tr>
+                                <td><strong><%= w.displayName %></strong> (<%= w.state %>)</td>
+                                <td><%= w.fullName %><br><small style="color:#64748b;"><%= w.email %></small></td>
+                                <td><span class="badge"><%= w.level %></span></td>
+                                <td style="color:#059669; font-weight:bold;"><%= w.award %></td>
+                                <td><code><%= w.claimCode %></code></td>
+                                <td>
+                                    <form action="/admin/remove-winner" method="POST" style="margin:0;">
+                                        <input type="hidden" name="winnerId" value="<%= w.id %>">
+                                        <button type="submit" class="btn-del">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } %>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; color: #1e293b;">Student Report Cards Master Ledger</h2>
+            <% if (uploadedResults.length === 0) { %>
+                <p style="text-align: center; color: #94a3b8; padding: 2rem 0;">No student report card documents have been uploaded yet.</p>
+            <% } else { %>
+                <table>
+                    <thead>
+                        <tr><th>Student Name</th><th>Email Address</th><th>Class Level</th><th>Academic Term</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <% uploadedResults.forEach(row => { %>
+                            <tr>
+                                <td style="font-weight: 600;"><%= row.first_name %> <%= row.last_name %></td>
+                                <td><%= row.email %></td>
+                                <td><span class="badge"><%= row.academic_class.replace("_", " ") %></span></td>
+                                <td><%= row.term_number %> Term</td>
+                                <td><a href="/download/<%= row.file_name %>" target="_blank" class="download-btn">📄 View Document</a></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>

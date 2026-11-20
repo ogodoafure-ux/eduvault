@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result Vault | Dashboard</title>
+    <script src="https://paystack.co"></script>
+    <style>
+        body { background: #f3f4f6; margin: 0; font-family: sans-serif; color: #1f2937; }
+        .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.2rem; font-weight: 900; color: #2563eb; text-decoration: none; text-transform: uppercase; }
+        .logo span { color: #10b981; }
+        .logout { color: #ef4444; font-weight: 600; text-decoration: none; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
+        @media(max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        .card { background: #fff; padding: 1.5rem; border-radius: 1rem; border: 1px solid #e5e7eb; height: fit-content; }
+        .avatar { width: 90px; height: 90px; border-radius: 50%; background: #e5e7eb; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; border: 3px solid #10b981; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .sec-hdr { font-size: 1.2rem; font-weight: bold; color: #1e3a8a; margin: 2rem 0 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+        .cls-row { display: flex; justify-content: space-between; padding: 0.8rem 1rem; background: #f0fdf4; border-radius: 0.6rem; margin-top: 1rem; border-left: 4px solid #10b981; }
+        .badge { background: #d1fae5; color: #065f46; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: bold; }
+        .term-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 0.75rem 0 1.5rem; }
+        .term-card { background: #fff; border: 1px dashed #d1d5db; padding: 1rem; border-radius: 0.75rem; text-align: center; }
+        .btn-g { background: #10b981; color: #fff; border: none; padding: 0.45rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; display: inline-block; text-decoration: none; margin-top: 0.4rem; }
+        .btn-pay { background: #ea580c; color: #fff; border: none; padding: 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 0.4rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar"><a href="/" class="logo">Nigeria Pry & Sec <span>Result Vault</span></a><a href="/logout" class="logout">Log Out</a></nav>
+    <div class="container">
+        <div class="card" style="text-align:center">
+            <div class="avatar"><% if (user && user.profilePicUrl) { %><img src="<%= user.profilePicUrl %>"><% } else { %>TS<% } %></div>
+            <h3><%= user ? user.firstName : 'Student' %></h3>
+            <form action="/upload-profile-pic" method="POST" enctype="multipart/form-data">
+                <input type="file" name="avatarFile" required style="font-size:0.75rem;width:100%">
+                <button type="submit" class="btn-g">Upload Photo</button>
+            </form>
+        </div>
+        <div class="card">
+            <div style='background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;padding:1rem;border-radius:0.75rem;margin-bottom:1.5rem;'><strong>🎓 Annual Student Academic Grant:</strong> Every verified vault subscription automatically qualifies you for our year-end educational grant awarded to 10 lucky students!</div>        <div class="card">
+            <% if (typeof myWin !== 'undefined' && myWin) { %>
+            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#0f172a;padding:1.5rem;border-radius:1rem;margin-bottom:1.5rem;box-shadow:0 4px 12px rgba(245,158,11,0.3);">
+                <h3 style="margin:0 0 0.4rem 0;font-size:1.25rem;">🎉 CONGRATULATIONS! You Are an Academic Grant Recipient!</h3>
+                <p style="margin:0 0 0.75rem 0;font-size:0.95rem;">You have been selected for the <strong><%= myWin.award %></strong> (<%= myWin.level %>).</p>
+                <div style="background:rgba(255,255,255,0.9);padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-size:0.9rem;">
+                    <strong>Your Official Claim Code:</strong> <span style="color:#1e3a8a;font-weight:900;"><%= myWin.claimCode %></span> — Present this code when our team contacts your registered email/phone!
+                </div>
+            </div>
+            <% } %>
+            <h2>Your Academic Vaults</h2>
+            <% const segs = [{t:'Primary School',p:'PRIMARY_',n:6},{t:'Junior Secondary (JSS)',p:'JSS_',n:3},{t:'Senior Secondary (SSS)',p:'SSS_',n:3}]; %>
+            <% for (let s = 0; s < segs.length; s++) { %>
+                <div class="sec-hdr"><%= segs[s].t %></div>
+                <% for (let c = 1; c <= segs[s].n; c++) { let cid = segs[s].p + c; %>
+                    <div class="cls-row"><strong><%= cid.replace('_',' ') %> Vault</strong><span class="badge">Active</span></div>
+                    <div class="term-box">
+                        <% for (let t = 1; t <= 3; t++) { let tk = cid + '_TERM_' + t; %>
+                            <div class="term-card">
+                                <b><%= t === 1 ? '1st' : t === 2 ? '2nd' : '3rd' %> Term</b><br>
+                                <% if (unlockedClasses.includes(tk)) { %>
+                                    <% if (savedResults[tk]) { %>
+                                        <small style="color:#10b981">✓ Secured</small>
+                                        <a href="/download/<%= savedResults[tk] %>" target="_blank" class="btn-g">View Document</a>
+                                    <% } else { %>
+                                        <form action="/upload-result" method="POST" enctype="multipart/form-data">
+                                            <input type="hidden" name="classId" value="<%= cid %>">
+                                            <input type="hidden" name="term" value="<%= t %>">
+                                            <input type="file" name="resultDoc" required style="font-size:0.7rem;width:100%">
+                                            <button type="submit" class="btn-g">Upload File</button>
+                                        </form>
+                                    <% } %>
+                                <% } else { %>
+                                    <small style="color:#dc2626">🔒 Locked (₦6,000)</small>
+                                    <button type="button" class="btn-pay" data-key="<%= typeof publicKey !== 'undefined' ? publicKey : '' %>" data-email="<%= user ? user.email : 'test@student.com' %>" data-class="<%= cid %>" data-term="<%= t %>" onclick="payNow(this)">💳 Pay ₦6,000</button>
+                                <% } %>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+    </div>
+    <script>
+        function payNow(b) {
+            const k = b.dataset.key;
+            if (!k || !k.startsWith('pk_')) { alert('Missing Paystack Public Key in .env file.'); return; }
+            if (typeof PaystackPop === 'undefined') { const s = document.createElement('script'); s.src = 'https://paystack.co'; s.onload = () => payNow(b); s.onerror = () => alert('Network blocked Paystack. Check your internet or switch to a phone hotspot.'); document.head.appendChild(s); return; }
+            PaystackPop.setup({
+                key: k,
+                email: b.dataset.email,
+                amount: 600000,
+                currency: 'NGN',
+                ref: 'EV-' + Date.now(),
+                callback: function(r) {
+                    fetch('/verify-inline-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ classId: b.dataset.class, termNumber: b.dataset.term, reference: r.reference })
+                    }).then(res => { if (res.ok) location.reload(); });
+                }
+            }).openIframe();
+        }
+    </script>
+</body>
+</html>
+
+
+
