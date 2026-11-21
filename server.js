@@ -19,7 +19,8 @@ async function initDB() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
             ALTER TABLE IF EXISTS subscriptions ADD COLUMN IF NOT EXISTS academic_class VARCHAR(255);
-            CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255));
+            DROP TABLE IF EXISTS subscriptions CASCADE;
+            CREATE TABLE subscriptions (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255));
             CREATE TABLE IF NOT EXISTS student_results (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255), term_number VARCHAR(50), file_name VARCHAR(255));
             CREATE TABLE IF NOT EXISTS grant_winners (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, display_name VARCHAR(150), full_name VARCHAR(200), email VARCHAR(255), state VARCHAR(100), level VARCHAR(100), award VARCHAR(200), claim_code VARCHAR(50));
         `);
@@ -192,6 +193,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
