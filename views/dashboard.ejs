@@ -5,21 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Result Vault | Dashboard</title>
     <style>
-        body { background-color: #f8fafc; margin: 0; font-family: sans-serif; color: #1e293b; }
-        .navbar { background-color: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        body { background: #f8fafc; margin: 0; font-family: sans-serif; color: #1e293b; }
+        .navbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         .logo { font-size: 1.15rem; font-weight: 900; color: #1e3a8a; text-decoration: none; text-transform: uppercase; }
         .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-        .card { background: #ffffff; padding: 1.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
-        .grant-box { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
+        .card { background: #fff; padding: 1.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .profile-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; background: #e2e8f0; }
+        .grant-box { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: #fff; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
         .class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.25rem; }
-        .class-card { border: 1px solid #cbd5e1; border-radius: 0.85rem; padding: 1.25rem; background: #ffffff; }
+        .class-card { border: 1px solid #cbd5e1; border-radius: 0.85rem; padding: 1.25rem; background: #fff; }
         .class-card h3 { margin: 0 0 1rem 0; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
         .term-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; padding: 0.85rem; margin-bottom: 0.75rem; }
         .term-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
         .badge-locked { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; }
         .badge-unlocked { background: #d1fae5; color: #065f46; padding: 0.2rem 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; }
-        .btn-pay { background: #ea580c; color: white; border: none; padding: 0.55rem 1rem; border-radius: 0.45rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.85rem; }
-        .btn-upload { background: #10b981; color: white; border: none; padding: 0.5rem 0.9rem; border-radius: 0.4rem; font-weight: bold; cursor: pointer; font-size: 0.8rem; margin-top: 0.4rem; }
+        .btn-pay { background: #ea580c; color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 0.45rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.85rem; }
+        .btn-upload { background: #10b981; color: #fff; border: none; padding: 0.5rem 0.9rem; border-radius: 0.4rem; font-weight: bold; cursor: pointer; font-size: 0.8rem; margin-top: 0.4rem; }
         .view-link { display: inline-block; margin-top: 0.5rem; color: #2563eb; font-weight: bold; font-size: 0.85rem; text-decoration: none; }
     </style>
 </head>
@@ -32,30 +34,30 @@
         </div>
     </nav>
     <div class="container">
+        <div class="card profile-bar">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <img src="<%= (user && user.profilePicUrl) ? user.profilePicUrl : '/download/hero-students.png' %>" alt="Student Photo" class="avatar">
+                <div>
+                    <h3 style="margin:0 0 0.25rem 0;"><%= user ? (user.firstName + ' ' + user.lastName) : 'Student Account' %></h3>
+                    <div style="font-size:0.85rem;color:#64748b;"><%= user ? user.email : '' %></div>
+                </div>
+            </div>
+            <form action="/upload-profile-pic" method="POST" enctype="multipart/form-data" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                <input type="file" name="avatarFile" accept="image/*" required style="font-size:0.8rem;">
+                <button type="submit" class="btn-upload" style="margin-top:0;background:#2563eb;">📷 Update Photo</button>
+            </form>
+        </div>
         <div class="grant-box">
             <div style="font-weight:900;color:#fde68a;font-size:0.85rem;text-transform:uppercase;margin-bottom:0.35rem;">🎓 Annual Academic Grant & Tech Award (August 14, 2027)</div>
             <p style="margin:0;font-size:0.95rem;line-height:1.5;">Every verified vault subscription automatically qualifies your child for ₦200,000–₦500,000 cash grants and digital learning devices across Primary, Junior, and Senior Secondary levels!</p>
         </div>
-
         <div class="card">
-            <% if (typeof myWin !== 'undefined' && myWin) { %>
-            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#0f172a;padding:1.25rem;border-radius:0.85rem;margin-bottom:1.5rem;">
-                <h3 style="margin:0 0 0.35rem 0;">🎉 CONGRATULATIONS! You Are an Academic Grant Recipient!</h3>
-                <p style="margin:0 0 0.5rem 0;">Award: <strong><%= myWin.award %></strong> (<%= myWin.level %>)</p>
-                <div style="background:#ffffff;padding:0.45rem 0.85rem;border-radius:0.4rem;display:inline-block;font-weight:bold;">Claim Code: <%= myWin.claimCode %></div>
-            </div>
-            <% } %>
             <h2 style="margin-top:0;">Your Academic Vaults</h2>
             <div class="class-grid">
-                <% const classes = ["PRIMARY_1","PRIMARY_2","PRIMARY_3","PRIMARY_4","PRIMARY_5","PRIMARY_6","JSS_1","JSS_2","JSS_3","SSS_1","SSS_2","SSS_3"]; %>
-                <% classes.forEach(cid => { %>
+                <% Array.of("PRIMARY_1","PRIMARY_2","PRIMARY_3","PRIMARY_4","PRIMARY_5","PRIMARY_6","JSS_1","JSS_2","JSS_3","SSS_1","SSS_2","SSS_3").forEach(cid => { %>
                 <div class="class-card">
                     <h3><%= cid.replace("_", " ") %> Vault</h3>
-                    <% [1, 2, 3].forEach(t => { 
-                        const key = cid + "_TERM_" + t;
-                        const isUnlocked = Array.isArray(unlockedClasses) && unlockedClasses.includes(key);
-                        const savedFile = savedResults && savedResults[key];
-                    %>
+                    <% Array.of(1, 2, 3).forEach(t => { const key = cid + "_TERM_" + t; const isUnlocked = Array.isArray(unlockedClasses) && unlockedClasses.includes(key); %>
                     <div class="term-box">
                         <div class="term-header">
                             <span><%= t === 1 ? '1st' : (t === 2 ? '2nd' : '3rd') %> Term</span>
@@ -68,9 +70,7 @@
                                 <input type="file" name="resultDoc" accept=".pdf,.jpg,.jpeg,.png" required style="font-size:0.8rem;width:100%;">
                                 <button type="submit" class="btn-upload">📤 Upload Report Card</button>
                             </form>
-                            <% if (savedFile) { %>
-                                <a href="/download/<%= savedFile %>" target="_blank" class="view-link">📄 View Saved Result</a>
-                            <% } %>
+                            <% if (savedResults && savedResults[key]) { %><a href="/download/<%= savedResults[key] %>" target="_blank" class="view-link">📄 View Saved Result</a><% } %>
                         <% } else { %>
                             <form action="/paystack/initialize" method="POST" style="margin:0;">
                                 <input type="hidden" name="classId" value="<%= cid %>">
