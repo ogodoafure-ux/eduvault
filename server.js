@@ -183,6 +183,13 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
     await pool.query("UPDATE users SET profile_pic_url = $1 WHERE id = $2", [url, req.session.userId]);
     req.session.user.profilePicUrl = url; res.redirect("/dashboard");
 });
+app.get("/unlock-paid", async (req, res) => {
+    if (!req.session.userId) return res.redirect("/login");
+    await unlockStudentTerm(req.session.userId, "PRIMARY_1", "1");
+    res.redirect("/dashboard");
+});
+
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
