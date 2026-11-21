@@ -81,8 +81,8 @@ app.get("/admin", (req, res) => res.redirect("/admin/dashboard"));
 app.post("/login", async (req, res) => {
     try {
         const r = await pool.query("SELECT * FROM users WHERE email = $1", [String(req.body.email || "").toLowerCase().trim()]);
-        if (r.rows.length > 0 && req.body.password === r.rows.password_hash) {
-            const u = r.rows; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false;
+        if (r.rows.length > 0 && req.body.password === r.rows[0].password_hash) {
+            const u = r.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false;
             req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" };
             return res.redirect(req.session.isAdmin ? "/admin/dashboard" : "/dashboard");
         }
@@ -95,7 +95,7 @@ app.post("/register", async (req, res) => {
     try {
         await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, is_admin) VALUES ($1,$2,$3,$4,$5,$6)", [email.toLowerCase().trim(), password, firstName.trim(), lastName.trim(), state || "Nigeria", role === "registry" || role === "admin"]);
         res.redirect("/login");
-    } catch (err) { res.send("<h2>Email already registered or database error. <a href='/register'>Try again</a>.</h2>"); }
+    } catch (err) { console.error('Register err:', err.message); res.send('<h2>Registration error: ' + err.message + ' <a href="/register">Try again</a>.</h2>'); }
 });
 app.get("/dashboard", async (req, res) => {
     if (!req.session.userId || req.session.isAdmin) return res.redirect("/login");
@@ -105,7 +105,7 @@ app.get("/dashboard", async (req, res) => {
         const resQuery = await pool.query("SELECT academic_class, term_number, file_name FROM student_results WHERE user_id = $1", [req.session.userId]);
         const savedResults = {}; resQuery.rows.forEach(r => { savedResults[r.academic_class + "_TERM_" + r.term_number] = r.file_name; });
         const winQuery = await pool.query("SELECT * FROM grant_winners WHERE user_id = $1 LIMIT 1", [req.session.userId]);
-        const myWin = winQuery.rows.length > 0 ? { award: winQuery.rows.award, level: winQuery.rows.level, claimCode: winQuery.rows.claim_code } : null;
+        const myWin = winQuery.rows.length > 0 ? { award: winQuery.rows[0].award, level: winQuery.rows[0].level, claimCode: winQuery.rows[0].claim_code } : null;
         res.render("dashboard", { user: req.session.user, unlockedClasses: subRes.rows.map(r => r.academic_class), savedResults, publicKey: (process.env.PAYSTACK_PUBLIC_KEY || "").trim(), myWin });
     } catch (err) { res.status(500).send("Error loading dashboard."); }
 });
@@ -157,7 +157,7 @@ app.get("/paystack/callback", (req, res) => {
                     await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
                     if (uid && !req.session.userId) {
                         const uRes = await pool.query("SELECT * FROM users WHERE id = $1", [uid]);
-                        if (uRes.rows.length > 0) { const u = uRes.rows; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false; req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" }; }
+                        if (uRes.rows.length > 0) { const u = uRes.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false; req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" }; }
                     }
                 }
             } catch (e) {}
@@ -185,3 +185,4 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 });
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
