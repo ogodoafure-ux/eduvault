@@ -5,7 +5,7 @@ const session = require("express-session");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
+const https = require("https"); const cloudinary = require("cloudinary").v2; cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
@@ -173,12 +173,31 @@ app.post("/paystack/webhook", async (req, res) => {
 });
 app.post("/upload-result", upload.single("resultDoc"), async (req, res) => {
     if (!req.session.userId || !req.file) return res.redirect("/dashboard");
+    try {
+        const up = await cloudinary.uploader.upload(req.file.path, { folder: "eduvault_results", resource_type: "auto" });
+        const cid = String(req.body.classId).toUpperCase().trim(); const term = String(req.body.term).trim();
+        await pool.query("DELETE FROM student_results WHERE user_id = $1 AND academic_class = $2 AND term_number = $3", [req.session.userId, cid, term]);
+        await pool.query("INSERT INTO student_results (user_id, academic_class, term_number, file_name) VALUES ($1,$2,$3,$4)", [req.session.userId, cid, term, up.secure_url]);
+    } catch (e) { console.error("Cloudinary err:", e.message); }
+    return res.redirect("/dashboard");
+});
+app.post("/upload-result-legacy", upload.single("resultDoc"), async (req, res) => {
+    if (!req.session.userId || !req.file) return res.redirect("/dashboard");
     const cid = String(req.body.classId).toUpperCase().trim(); const term = String(req.body.term).trim();
     await pool.query("DELETE FROM student_results WHERE user_id = $1 AND academic_class = $2 AND term_number = $3", [req.session.userId, cid, term]);
     await pool.query("INSERT INTO student_results (user_id, academic_class, term_number, file_name) VALUES ($1,$2,$3,$4)", [req.session.userId, cid, term, req.file.filename]);
     res.redirect("/dashboard");
 });
 app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) => {
+    if (!req.session.userId || !req.file) return res.redirect("/dashboard");
+    try {
+        const up = await cloudinary.uploader.upload(req.file.path, { folder: "eduvault_avatars", resource_type: "image" });
+        await pool.query("UPDATE users SET profile_pic_url = $1 WHERE id = $2", [up.secure_url, req.session.userId]);
+        req.session.user.profilePicUrl = up.secure_url;
+    } catch (e) { console.error("Cloudinary avatar err:", e.message); }
+    return res.redirect("/dashboard");
+});
+app.post("/upload-profile-pic-legacy", upload.single("avatarFile"), async (req, res) => {
     if (!req.session.userId || !req.file) return res.redirect("/dashboard");
     const url = "/download/" + req.file.filename;
     await pool.query("UPDATE users SET profile_pic_url = $1 WHERE id = $2", [url, req.session.userId]);
@@ -192,6 +211,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

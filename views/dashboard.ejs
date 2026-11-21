@@ -70,7 +70,7 @@
                                 <input type="file" name="resultDoc" accept=".pdf,.jpg,.jpeg,.png" required style="font-size:0.8rem;width:100%;">
                                 <button type="submit" class="btn-upload">📤 Upload Report Card</button>
                             </form>
-                            <% if (savedResults && savedResults[key]) { %><a href="/download/<%= savedResults[key] %>" target="_blank" class="view-link">📄 View Saved Result</a><% } %>
+                            <% if (savedResults && savedResults[key]) { %><a href="<%= savedResults[key].startsWith("http") ? savedResults[key] : ("/download/" + savedResults[key]) %>" target="_blank" class="view-link">📄 View Saved Result</a><% } %>
                         <% } else { %>
                             <form action="/paystack/initialize" method="POST" style="margin:0;">
                                 <input type="hidden" name="classId" value="<%= cid %>">
@@ -87,3 +87,4 @@
     </div>
 </body>
 </html>
+
