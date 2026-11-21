@@ -166,7 +166,44 @@ async function syncPaystackPaymentsForEmail(uid, email) {
     });
 }
 
+async function syncPaystackPaymentsForEmail(uid, email) {
+    return new Promise((resolve) => {
+        const options = {
+            hostname: "api.paystack.co",
+            port: 443,
+            path: `/transaction?status=success&perPage=10`,
+            method: "GET",
+            headers: { "Authorization": "Bearer " + String(process.env.PAYSTACK_SECRET_KEY || "").trim() }
+        };
+        const req = https.request(options, (res) => {
+            let chunks = [];
+            res.on("data", c => chunks.push(c));
+            res.on("end", async () => {
+                try {
+                    const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                    if (data.status && Array.isArray(data.data)) {
+                        for (const tx of data.data) {
+                            const txEmail = String(tx.customer && tx.customer.email || "").toLowerCase().trim();
+                            if (txEmail === String(email).toLowerCase().trim() && tx.metadata) {
+                                const cid = tx.metadata.class_id;
+                                const term = tx.metadata.term_number;
+                                if (cid && term) {
+                                    await unlockStudentTerm(uid, cid, term);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {}
+                resolve();
+            });
+        });
+        req.on("error", () => resolve());
+        req.end();
+    });
+}
+
 app.get("/dashboard", async (req, res) => {
+    try { await syncPaystackPaymentsForEmail(req.session.userId, req.session.user && req.session.user.email); } catch (e) {}
     try { await syncPaystackPaymentsForEmail(req.session.userId, req.session.user && req.session.user.email); } catch (e) {}
     if (!req.session.userId || req.session.isAdmin) return res.redirect("/login");
     try {
@@ -379,6 +416,7 @@ app.post("/upload-profile-pic", upload.single("avatarFile"), async (req, res) =>
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 
 
