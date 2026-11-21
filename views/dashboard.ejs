@@ -3,108 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result Vault | Dashboard</title>
-    <script src="https://paystack.co"></script>
+    <title>Student Result Vault | Dashboard</title>
     <style>
-        body { background: #f3f4f6; margin: 0; font-family: sans-serif; color: #1f2937; }
-        .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.2rem; font-weight: 900; color: #2563eb; text-decoration: none; text-transform: uppercase; }
-        .logo span { color: #10b981; }
-        .logout { color: #ef4444; font-weight: 600; text-decoration: none; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
-        @media(max-width: 768px) { .container { grid-template-columns: 1fr; } }
-        .card { background: #fff; padding: 1.5rem; border-radius: 1rem; border: 1px solid #e5e7eb; height: fit-content; }
-        .avatar { width: 90px; height: 90px; border-radius: 50%; background: #e5e7eb; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; border: 3px solid #10b981; overflow: hidden; }
-        .avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .sec-hdr { font-size: 1.2rem; font-weight: bold; color: #1e3a8a; margin: 2rem 0 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
-        .cls-row { display: flex; justify-content: space-between; padding: 0.8rem 1rem; background: #f0fdf4; border-radius: 0.6rem; margin-top: 1rem; border-left: 4px solid #10b981; }
-        .badge { background: #d1fae5; color: #065f46; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: bold; }
-        .term-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 0.75rem 0 1.5rem; }
-        .term-card { background: #fff; border: 1px dashed #d1d5db; padding: 1rem; border-radius: 0.75rem; text-align: center; }
-        .btn-g { background: #10b981; color: #fff; border: none; padding: 0.45rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; display: inline-block; text-decoration: none; margin-top: 0.4rem; }
-        .btn-pay { background: #ea580c; color: #fff; border: none; padding: 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 0.4rem; }
+        body { background-color: #f8fafc; margin: 0; font-family: sans-serif; color: #1e293b; }
+        .navbar { background-color: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.15rem; font-weight: 900; color: #1e3a8a; text-decoration: none; text-transform: uppercase; }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #ffffff; padding: 1.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .grant-box { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.25rem; }
+        .class-card { border: 1px solid #cbd5e1; border-radius: 0.85rem; padding: 1.25rem; background: #ffffff; }
+        .class-card h3 { margin: 0 0 1rem 0; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .term-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; padding: 0.85rem; margin-bottom: 0.75rem; }
+        .term-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
+        .badge-locked { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; }
+        .badge-unlocked { background: #d1fae5; color: #065f46; padding: 0.2rem 0.55rem; border-radius: 0.35rem; font-size: 0.75rem; }
+        .btn-pay { background: #ea580c; color: white; border: none; padding: 0.55rem 1rem; border-radius: 0.45rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.85rem; }
+        .btn-upload { background: #10b981; color: white; border: none; padding: 0.5rem 0.9rem; border-radius: 0.4rem; font-weight: bold; cursor: pointer; font-size: 0.8rem; margin-top: 0.4rem; }
+        .view-link { display: inline-block; margin-top: 0.5rem; color: #2563eb; font-weight: bold; font-size: 0.85rem; text-decoration: none; }
     </style>
 </head>
 <body>
-    <nav class="navbar"><a href="/" class="logo">Nigeria Pry & Sec <span>Result Vault</span></a><a href="/logout" class="logout">Log Out</a></nav>
-    <div class="container">
-        <div class="card" style="text-align:center">
-            <div class="avatar"><% if (user && user.profilePicUrl) { %><img src="<%= user.profilePicUrl %>"><% } else { %>TS<% } %></div>
-            <h3><%= user ? user.firstName : 'Student' %></h3>
-            <form action="/upload-profile-pic" method="POST" enctype="multipart/form-data">
-                <input type="file" name="avatarFile" required style="font-size:0.75rem;width:100%">
-                <button type="submit" class="btn-g">Upload Photo</button>
-            </form>
+    <nav class="navbar">
+        <a href="/" class="logo">Nigeria Pry & Sec <span>Result Vault</span></a>
+        <div>
+            <span style="margin-right:1rem;font-size:0.9rem;">Hi, <strong><%= user ? user.firstName : 'Student' %></strong></span>
+            <a href="/logout" style="color:#ef4444;font-weight:bold;text-decoration:none;font-size:0.85rem;">Log Out</a>
         </div>
+    </nav>
+    <div class="container">
+        <div class="grant-box">
+            <div style="font-weight:900;color:#fde68a;font-size:0.85rem;text-transform:uppercase;margin-bottom:0.35rem;">🎓 Annual Academic Grant & Tech Award (August 14, 2027)</div>
+            <p style="margin:0;font-size:0.95rem;line-height:1.5;">Every verified vault subscription automatically qualifies your child for ₦200,000–₦500,000 cash grants and digital learning devices across Primary, Junior, and Senior Secondary levels!</p>
+        </div>
+
         <div class="card">
-            <div style='background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;padding:1rem;border-radius:0.75rem;margin-bottom:1.5rem;'><strong>🎓 Annual Student Academic Grant:</strong> Every verified vault subscription automatically qualifies your child for our End-of-Year Educational Grant (announced August 14, 2027), featuring ₦200,000–₦500,000 cash grants and digital learning devices across Primary, Junior, and Senior Secondary levels!</div>        <div class="card">
             <% if (typeof myWin !== 'undefined' && myWin) { %>
-            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#0f172a;padding:1.5rem;border-radius:1rem;margin-bottom:1.5rem;box-shadow:0 4px 12px rgba(245,158,11,0.3);">
-                <h3 style="margin:0 0 0.4rem 0;font-size:1.25rem;">🎉 CONGRATULATIONS! You Are an Academic Grant Recipient!</h3>
-                <p style="margin:0 0 0.75rem 0;font-size:0.95rem;">You have been selected for the <strong><%= myWin.award %></strong> (<%= myWin.level %>).</p>
-                <div style="background:rgba(255,255,255,0.9);padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-size:0.9rem;">
-                    <strong>Your Official Claim Code:</strong> <span style="color:#1e3a8a;font-weight:900;"><%= myWin.claimCode %></span> — Present this code when our team contacts your registered email/phone!
-                </div>
+            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#0f172a;padding:1.25rem;border-radius:0.85rem;margin-bottom:1.5rem;">
+                <h3 style="margin:0 0 0.35rem 0;">🎉 CONGRATULATIONS! You Are an Academic Grant Recipient!</h3>
+                <p style="margin:0 0 0.5rem 0;">Award: <strong><%= myWin.award %></strong> (<%= myWin.level %>)</p>
+                <div style="background:#ffffff;padding:0.45rem 0.85rem;border-radius:0.4rem;display:inline-block;font-weight:bold;">Claim Code: <%= myWin.claimCode %></div>
             </div>
             <% } %>
-            <h2>Your Academic Vaults</h2>
-            <% const segs = [{t:'Primary School',p:'PRIMARY_',n:6},{t:'Junior Secondary (JSS)',p:'JSS_',n:3},{t:'Senior Secondary (SSS)',p:'SSS_',n:3}]; %>
-            <% for (let s = 0; s < segs.length; s++) { %>
-                <div class="sec-hdr"><%= segs[s].t %></div>
-                <% for (let c = 1; c <= segs[s].n; c++) { let cid = segs[s].p + c; %>
-                    <div class="cls-row"><strong><%= cid.replace('_',' ') %> Vault</strong><span class="badge">Active</span></div>
+            <h2 style="margin-top:0;">Your Academic Vaults</h2>
+            <div class="class-grid">
+                <% const classes = ["PRIMARY_1","PRIMARY_2","PRIMARY_3","PRIMARY_4","PRIMARY_5","PRIMARY_6","JSS_1","JSS_2","JSS_3","SSS_1","SSS_2","SSS_3"]; %>
+                <% classes.forEach(cid => { %>
+                <div class="class-card">
+                    <h3><%= cid.replace("_", " ") %> Vault</h3>
+                    <% [1, 2, 3].forEach(t => { 
+                        const key = cid + "_TERM_" + t;
+                        const isUnlocked = Array.isArray(unlockedClasses) && unlockedClasses.includes(key);
+                        const savedFile = savedResults && savedResults[key];
+                    %>
                     <div class="term-box">
-                        <% for (let t = 1; t <= 3; t++) { let tk = cid + '_TERM_' + t; %>
-                            <div class="term-card">
-                                <b><%= t === 1 ? '1st' : t === 2 ? '2nd' : '3rd' %> Term</b><br>
-                                <% if (unlockedClasses.includes(tk)) { %>
-                                    <% if (savedResults[tk]) { %>
-                                        <small style="color:#10b981">✓ Secured</small>
-                                        <a href="/download/<%= savedResults[tk] %>" target="_blank" class="btn-g">View Document</a>
-                                    <% } else { %>
-                                        <form action="/upload-result" method="POST" enctype="multipart/form-data">
-                                            <input type="hidden" name="classId" value="<%= cid %>">
-                                            <input type="hidden" name="term" value="<%= t %>">
-                                            <input type="file" name="resultDoc" required style="font-size:0.7rem;width:100%">
-                                            <button type="submit" class="btn-g">Upload File</button>
-                                        </form>
-                                    <% } %>
-                                <% } else { %>
-                                    <small style="color:#dc2626">🔒 Locked (₦6,000)</small>
-                                    <form action="/paystack/initialize" method="POST" style="margin:0;"><input type="hidden" name="classId" value="<%= cid %>"><input type="hidden" name="termNumber" value="<%= t %>"><button type="submit" class="btn-pay">💳 Pay ₦6,000</button></form>
-                                <% } %>
-                            </div>
+                        <div class="term-header">
+                            <span><%= t === 1 ? '1st' : (t === 2 ? '2nd' : '3rd') %> Term</span>
+                            <% if (isUnlocked) { %><span class="badge-unlocked">✓ Unlocked</span><% } else { %><span class="badge-locked">🔒 Locked</span><% } %>
+                        </div>
+                        <% if (isUnlocked) { %>
+                            <form action="/upload-result" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="classId" value="<%= cid %>">
+                                <input type="hidden" name="term" value="<%= t %>">
+                                <input type="file" name="resultDoc" accept=".pdf,.jpg,.jpeg,.png" required style="font-size:0.8rem;width:100%;">
+                                <button type="submit" class="btn-upload">📤 Upload Report Card</button>
+                            </form>
+                            <% if (savedFile) { %>
+                                <a href="/download/<%= savedFile %>" target="_blank" class="view-link">📄 View Saved Result</a>
+                            <% } %>
+                        <% } else { %>
+                            <form action="/paystack/initialize" method="POST" style="margin:0;">
+                                <input type="hidden" name="classId" value="<%= cid %>">
+                                <input type="hidden" name="termNumber" value="<%= t %>">
+                                <button type="submit" class="btn-pay">💳 Pay ₦6,000 to Unlock</button>
+                            </form>
                         <% } %>
                     </div>
-                <% } %>
-            <% } %>
+                    <% }) %>
+                </div>
+                <% }) %>
+            </div>
         </div>
     </div>
-    <script>
-        function payNow(b) {
-            const k = b.dataset.key;
-            if (!k || !k.startsWith('pk_')) { alert('Missing Paystack Public Key in .env file.'); return; }
-            if (typeof PaystackPop === 'undefined') { const s = document.createElement('script'); s.src = 'https://paystack.co'; s.onload = () => payNow(b); s.onerror = () => alert('Network blocked Paystack. Check your internet or switch to a phone hotspot.'); document.head.appendChild(s); return; }
-            PaystackPop.setup({
-                key: k,
-                email: b.dataset.email,
-                amount: 600000,
-                currency: 'NGN',
-                ref: 'EV-' + Date.now(),
-                callback: function(r) {
-                    fetch('/verify-inline-payment', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ classId: b.dataset.class, termNumber: b.dataset.term, reference: r.reference })
-                    }).then(res => { if (res.ok) location.reload(); });
-                }
-            }).openIframe();
-        }
-    </script>
 </body>
 </html>
-
-
-
-
-
