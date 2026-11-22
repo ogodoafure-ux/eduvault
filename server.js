@@ -17,13 +17,13 @@ async function initDB() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT 'Nigeria';
             ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
-            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(200) DEFAULT 'General'; UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@school.com';
             ALTER TABLE IF EXISTS subscriptions ADD COLUMN IF NOT EXISTS academic_class VARCHAR(255);
             CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255));
             CREATE TABLE IF NOT EXISTS student_results (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255), term_number VARCHAR(50), file_name VARCHAR(255));
             CREATE TABLE IF NOT EXISTS grant_winners (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, display_name VARCHAR(150), full_name VARCHAR(200), email VARCHAR(255), state VARCHAR(100), level VARCHAR(100), award VARCHAR(200), claim_code VARCHAR(50));
         `);
-        await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, is_admin) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (email) DO NOTHING", ["admin@school.com", "admin123", "Principal", "Alimi", "Delta State", true]);
+        await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, school_name, is_admin) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (email) DO NOTHING", ["admin@school.com", "admin123", "Principal", "Alimi", "Delta State", true]);
         console.log("Cloud database tables verified!");
     } catch (err) { console.error("DB init:", err.message); }
 }
@@ -92,7 +92,7 @@ app.post("/login", async (req, res) => {
     try {
         const r = await pool.query("SELECT * FROM users WHERE email = $1", [String(req.body.email || "").toLowerCase().trim()]);
         if (r.rows.length > 0 && req.body.password === r.rows[0].password_hash) {
-            const u = r.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false;
+            const u = r.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false; req.session.isSuperAdmin = u.is_super_admin || (u.email === 'admin@school.com'); req.session.schoolName = u.school_name || 'General';
             req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" };
             return res.redirect(req.session.isAdmin ? "/admin/dashboard" : "/dashboard");
         }
@@ -101,9 +101,9 @@ app.post("/login", async (req, res) => {
 });
 app.get("/register", (req, res) => res.render("register"));
 app.post("/register", async (req, res) => {
-    const { email, password, firstName, lastName, role, state } = req.body;
+    const { email, password, firstName, lastName, role, state, schoolName } = req.body;
     try {
-        await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, is_admin) VALUES ($1,$2,$3,$4,$5,$6)", [email.toLowerCase().trim(), password, firstName.trim(), lastName.trim(), state || "Nigeria", role === "registry" || role === "admin"]);
+        await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, school_name, is_admin) VALUES ($1,$2,$3,$4,$5,$6,$7)", [email.toLowerCase().trim(), password, firstName.trim(), lastName.trim(), state || "Nigeria", (schoolName || "General").trim(), role === "registry" || role === "admin"]);
         res.redirect("/login");
     } catch (err) { console.error('Register err:', err.message); res.send('<h2>Registration error: ' + err.message + ' <a href="/register">Try again</a>.</h2>'); }
 });
@@ -122,11 +122,27 @@ app.get("/dashboard", async (req, res) => {
 app.get("/admin/dashboard", async (req, res) => {
     if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
     try {
-        const resQuery = await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email FROM student_results r JOIN users u ON r.user_id = u.id ORDER BY u.last_name ASC");
-        const stuQuery = await pool.query("SELECT id, first_name, last_name, email FROM users WHERE is_admin = FALSE ORDER BY first_name ASC");
+        const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+        const sch = req.session.schoolName || "General";
+        const resQuery = isSuper
+            ? await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id ORDER BY u.school_name ASC, u.last_name ASC")
+            : await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id WHERE LOWER(u.school_name) = LOWER($1) ORDER BY u.last_name ASC", [sch]);
+        const stuQuery = isSuper
+            ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = FALSE ORDER BY first_name ASC")
+            : await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = FALSE AND LOWER(school_name) = LOWER($1) ORDER BY first_name ASC", [sch]);
+        const admQuery = isSuper ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC") : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
-        res.render("admin-dashboard", { user: req.session.user, uploadedResults: resQuery.rows, students: stuQuery.rows, winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code })) });
+        res.render("admin-dashboard", { user: req.session.user, isSuper, schoolName: sch, schoolAdmins: admQuery.rows, uploadedResults: resQuery.rows, students: stuQuery.rows, winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code })) });
     } catch (err) { res.status(500).send("Error loading admin dashboard."); }
+});
+
+app.post("/admin/create-school-admin", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const { schoolName, firstName, lastName, email, password, state } = req.body;
+    try {
+        await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, school_name, is_admin, is_super_admin) VALUES ($1,$2,$3,$4,$5,$6,TRUE,FALSE)", [email.toLowerCase().trim(), password, firstName.trim(), lastName.trim(), state || "Delta State", schoolName.trim()]);
+    } catch (e) { console.error("School admin err:", e.message); }
+    res.redirect("/admin/dashboard");
 });
 app.post("/admin/add-winner", async (req, res) => {
     if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
@@ -167,7 +183,7 @@ app.get("/paystack/callback", (req, res) => {
                     await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
                     if (uid && !req.session.userId) {
                         const uRes = await pool.query("SELECT * FROM users WHERE id = $1", [uid]);
-                        if (uRes.rows.length > 0) { const u = uRes.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false; req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" }; }
+                        if (uRes.rows.length > 0) { const u = uRes.rows[0]; req.session.userId = u.id; req.session.isAdmin = u.is_admin || false; req.session.isSuperAdmin = u.is_super_admin || (u.email === 'admin@school.com'); req.session.schoolName = u.school_name || 'General'; req.session.user = { id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, profilePicUrl: u.profile_pic_url || "" }; }
                     }
                 }
             } catch (e) {}
@@ -220,6 +236,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
