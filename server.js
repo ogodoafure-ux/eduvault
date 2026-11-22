@@ -124,16 +124,34 @@ app.get("/admin/dashboard", async (req, res) => {
     try {
         const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
         const sch = req.session.schoolName || "General";
+        await pool.query("CREATE TABLE IF NOT EXISTS school_reports (id SERIAL PRIMARY KEY, school_name VARCHAR(200), sender_email VARCHAR(200), subscribed_count INT, student_names TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
         const resQuery = isSuper
             ? await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id ORDER BY u.school_name ASC, u.last_name ASC")
-            : await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id WHERE LOWER(u.school_name) = LOWER($1) ORDER BY u.last_name ASC", [sch]);
+            : await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id WHERE TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) ORDER BY u.last_name ASC", [sch]);
         const stuQuery = isSuper
-            ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = FALSE ORDER BY first_name ASC")
-            : await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = FALSE AND LOWER(school_name) = LOWER($1) ORDER BY first_name ASC", [sch]);
-        const admQuery = isSuper ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC") : { rows: [] };
+            ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id ORDER BY u.first_name ASC")
+            : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id ORDER BY u.first_name ASC", [sch]);
+        const admQuery = isSuper
+            ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
+            : { rows: [] };
+        const repQuery = isSuper
+            ? await pool.query("SELECT * FROM school_reports ORDER BY id DESC")
+            : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
-        res.render("admin-dashboard", { user: req.session.user, isSuper, schoolName: sch, schoolAdmins: admQuery.rows, schoolReports: repQuery.rows, uploadedResults: resQuery.rows, students: stuQuery.rows, winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code })) });
-    } catch (err) { res.status(500).send("Error loading admin dashboard."); }
+        res.render("admin-dashboard", {
+            user: req.session.user,
+            isSuper,
+            schoolName: sch,
+            schoolAdmins: admQuery.rows,
+            schoolReports: repQuery.rows,
+            uploadedResults: resQuery.rows,
+            students: stuQuery.rows,
+            winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code }))
+        });
+    } catch (err) {
+        console.error("Admin dashboard error:", err.message);
+        res.status(500).send("Error loading admin dashboard: " + err.message);
+    }
 });
 
 app.post("/admin/submit-subscription-report", async (req, res) => {
@@ -248,6 +266,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
