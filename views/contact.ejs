@@ -20,29 +20,18 @@
     </style>
 </head>
 <body>
-<div style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0.095;">
-  <svg width="460" height="460" viewBox="0 0 320 320" xmlns="http://w3.org">
-    <defs>
-      <linearGradient id="goldCup" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#f59e0b"/>
-        <stop offset="50%" stop-color="#eab308"/>
-        <stop offset="100%" stop-color="#b45309"/>
-      </linearGradient>
-    </defs>
-    <!-- Left & Right Trophy Handles -->
-    <path d="M85 65 C35 65 35 145 92 155" fill="none" stroke="url(#goldCup)" stroke-width="14" stroke-linecap="round"/>
-    <path d="M235 65 C285 65 285 145 228 155" fill="none" stroke="url(#goldCup)" stroke-width="14" stroke-linecap="round"/>
-    <!-- Main Cup Bowl -->
-    <path d="M82 45 H238 L222 145 C215 185 182 205 160 205 C138 205 105 185 98 145 Z" fill="url(#goldCup)"/>
-    <!-- Cup Rim & Stem -->
-    <rect x="74" y="36" width="172" height="14" rx="7" fill="#d97706"/>
-    <rect x="146" y="202" width="28" height="48" fill="url(#goldCup)"/>
-    <ellipse cx="160" cy="248" rx="46" ry="10" fill="#d97706"/>
-    <!-- Pedestal Base -->
-    <rect x="95" y="255" width="130" height="36" rx="8" fill="#1e3a8a"/>
-    <text x="160" y="278" font-family="Arial,sans-serif" font-size="14" font-weight="900" fill="#fde047" text-anchor="middle">₦5,000,000 WINNER</text>
-    <!-- Star Emblem on Cup -->
-    <polygon points="160,72 171,102 203,102 177,120 187,150 160,132 133,150 143,120 117,102 149,102" fill="#ffffff" fill-opacity="0.85"/>
+<div style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0.065;">
+  <svg width="430" height="430" viewBox="0 0 320 320" xmlns="http://w3.org">
+    <!-- Outer Academic Shield -->
+    <path d="M160 28 L268 68 V152 C268 222 216 268 160 292 C104 268 52 222 52 152 V68 Z" fill="#1e3a8a" stroke="#0f172a" stroke-width="6"/>
+    <path d="M160 44 L252 78 V150 C252 210 207 250 160 272 C113 250 68 210 68 150 V78 Z" fill="none" stroke="#eab308" stroke-width="4"/>
+    <!-- Graduation Cap -->
+    <polygon points="160,82 226,112 160,142 94,112" fill="#ffffff"/>
+    <path d="M122 126 V152 C122 164 198 164 198 152 V126" fill="none" stroke="#ffffff" stroke-width="6"/>
+    <line x1="226" y1="112" x2="226" y2="154" stroke="#eab308" stroke-width="5" stroke-linecap="round"/>
+    <!-- Open Book & Verification Check -->
+    <path d="M108 184 Q134 174 160 186 Q186 174 212 184 V218 Q186 208 160 220 Q134 208 108 218 Z" fill="#ffffff" fill-opacity="0.9"/>
+    <path d="M144 236 L156 248 L180 224" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </div>
 <nav class="navbar">
@@ -92,6 +81,7 @@
     </div>
 </body>
 </html>
+
 
 
 
