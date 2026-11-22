@@ -33,18 +33,32 @@
     </style>
 <style>body{position:relative;}body::before{content:"";position:fixed;inset:0;background:url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fw3.org%22%20viewBox%3D%220%200%20300%20280%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2315803d%22%20stroke-width%3D%225%22%3E%3Cpath%20d%3D%22M90%2060%20H210%20V145%20C210%20195%20150%20225%20150%20225%20C150%20225%2090%20195%2090%20145%20Z%22%20fill%3D%22%23166534%22%20fill-opacity%3D%220.25%22%2F%3E%3Cpath%20d%3D%22M150%20135%20L105%2070%20M150%20135%20L195%2070%20M150%20135%20V220%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%2210%22%2F%3E%3Cpath%20d%3D%22M85%20110%20C55%2095%2045%20135%2075%20165%20C55%20185%2075%20215%2095%20205%22%20stroke%3D%22%23111827%22%20stroke-width%3D%228%22%2F%3E%3Cpath%20d%3D%22M215%20110%20C245%2095%20255%20135%20225%20165%20C245%20185%20225%20215%20205%20205%22%20stroke%3D%22%23111827%22%20stroke-width%3D%228%22%2F%3E%3Cpath%20d%3D%22M115%2045%20Q150%2015%20185%2045%22%20stroke%3D%22%23dc2626%22%20stroke-width%3D%229%22%2F%3E%3Crect%20x%3D%2275%22%20y%3D%22232%22%20width%3D%22150%22%20height%3D%2222%22%20rx%3D%226%22%20fill%3D%22%2315803d%22%20fill-opacity%3D%220.35%22%2F%3E%3Ctext%20x%3D%22150%22%20y%3D%22247%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2211%22%20font-weight%3D%22bold%22%20fill%3D%22%23064e3b%22%20text-anchor%3D%22middle%22%3EUNITY%20AND%20FAITH%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fsvg%3E") center/440px no-repeat;opacity:0.16;pointer-events:none;z-index:0;}</style></head>
 <body>
-<div style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0.085;">
-  <svg width="420" height="390" viewBox="0 0 300 280" xmlns="http://w3.org">
-    <path d="M90 60 H210 V145 C210 195 150 225 150 225 C150 225 90 195 90 145 Z" fill="#15803d" stroke="#14532d" stroke-width="5"/>
-    <path d="M150 135 L105 70 M150 135 L195 70 M150 135 V220" stroke="#ffffff" stroke-width="11"/>
-    <path d="M85 110 C50 95 40 135 72 165 C52 185 72 215 95 205" fill="none" stroke="#111827" stroke-width="9" stroke-linecap="round"/>
-    <path d="M215 110 C250 95 260 135 228 165 C248 185 228 215 205 205" fill="none" stroke="#111827" stroke-width="9" stroke-linecap="round"/>
-    <path d="M115 45 Q150 15 185 45" fill="none" stroke="#dc2626" stroke-width="9" stroke-linecap="round"/>
-    <rect x="65" y="232" width="170" height="24" rx="6" fill="#15803d"/>
-    <text x="150" y="248" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">UNITY AND FAITH</text>
+<div style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0.095;">
+  <svg width="460" height="460" viewBox="0 0 320 320" xmlns="http://w3.org">
+    <defs>
+      <linearGradient id="goldCup" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f59e0b"/>
+        <stop offset="50%" stop-color="#eab308"/>
+        <stop offset="100%" stop-color="#b45309"/>
+      </linearGradient>
+    </defs>
+    <!-- Left & Right Trophy Handles -->
+    <path d="M85 65 C35 65 35 145 92 155" fill="none" stroke="url(#goldCup)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M235 65 C285 65 285 145 228 155" fill="none" stroke="url(#goldCup)" stroke-width="14" stroke-linecap="round"/>
+    <!-- Main Cup Bowl -->
+    <path d="M82 45 H238 L222 145 C215 185 182 205 160 205 C138 205 105 185 98 145 Z" fill="url(#goldCup)"/>
+    <!-- Cup Rim & Stem -->
+    <rect x="74" y="36" width="172" height="14" rx="7" fill="#d97706"/>
+    <rect x="146" y="202" width="28" height="48" fill="url(#goldCup)"/>
+    <ellipse cx="160" cy="248" rx="46" ry="10" fill="#d97706"/>
+    <!-- Pedestal Base -->
+    <rect x="95" y="255" width="130" height="36" rx="8" fill="#1e3a8a"/>
+    <text x="160" y="278" font-family="Arial,sans-serif" font-size="14" font-weight="900" fill="#fde047" text-anchor="middle">₦5,000,000 WINNER</text>
+    <!-- Star Emblem on Cup -->
+    <polygon points="160,72 171,102 203,102 177,120 187,150 160,132 133,150 143,120 117,102 149,102" fill="#ffffff" fill-opacity="0.85"/>
   </svg>
 </div>
-    <nav class="navbar">
+<nav class="navbar">
         <a href="/" class="logo">Nigeria Pry & Sec <span>Result Vault</span></a>
         <div class="nav-links">
             <a href="/login" class="btn-login">Log In</a> <a href="/contact" style="margin-left:1rem;font-weight:bold;text-decoration:none;color:#1e3a8a;">Contact Us</a>
@@ -119,6 +133,7 @@
     </div>
 <a href='https://chat.whatsapp.com/Leg0vgDSgp22OIMHlh5E51?s=cl&p=i&iam=2' target='_blank' style='position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:12px 18px;border-radius:50px;font-weight:bold;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999;'>💬 Join WhatsApp Group</a><a href="https://whatsapp.com" target="_blank" style="position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:12px 18px;border-radius:50px;font-weight:bold;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999;">💬 Join WhatsApp Group</a></body>
 </html>
+
 
 
 
