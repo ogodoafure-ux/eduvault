@@ -129,8 +129,8 @@ app.get("/admin/dashboard", async (req, res) => {
             ? await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id ORDER BY u.school_name ASC, u.last_name ASC")
             : await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id WHERE TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) ORDER BY u.last_name ASC", [sch]);
         const stuQuery = isSuper
-            ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id ORDER BY u.first_name ASC")
-            : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id ORDER BY u.first_name ASC", [sch]);
+            ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC")
+            : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC", [sch]);
         const admQuery = isSuper
             ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
             : { rows: [] };
@@ -150,10 +150,9 @@ app.get("/admin/dashboard", async (req, res) => {
         });
     } catch (err) {
         console.error("Admin dashboard error:", err.message);
-        res.status(500).send("Error loading admin dashboard: " + err.message);
+        res.status(500).send("Admin dashboard error: " + err.message);
     }
 });
-
 app.post("/admin/submit-subscription-report", async (req, res) => {
     if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
     try {
@@ -266,6 +265,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
