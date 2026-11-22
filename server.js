@@ -132,8 +132,20 @@ app.get("/admin/dashboard", async (req, res) => {
             : await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = FALSE AND LOWER(school_name) = LOWER($1) ORDER BY first_name ASC", [sch]);
         const admQuery = isSuper ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC") : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
-        res.render("admin-dashboard", { user: req.session.user, isSuper, schoolName: sch, schoolAdmins: admQuery.rows, uploadedResults: resQuery.rows, students: stuQuery.rows, winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code })) });
+        res.render("admin-dashboard", { user: req.session.user, isSuper, schoolName: sch, schoolAdmins: admQuery.rows, schoolReports: repQuery.rows, uploadedResults: resQuery.rows, students: stuQuery.rows, winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code })) });
     } catch (err) { res.status(500).send("Error loading admin dashboard."); }
+});
+
+app.post("/admin/submit-subscription-report", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    try {
+        const sch = req.session.schoolName || "General";
+        const paidRes = await pool.query("SELECT DISTINCT u.first_name, u.last_name, u.email FROM users u JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) ORDER BY u.last_name ASC", [sch]);
+        const namesList = paidRes.rows.map(r => `${r.first_name} ${r.last_name} (${r.email})`).join(", ") || "No paid students yet";
+        await pool.query("CREATE TABLE IF NOT EXISTS school_reports (id SERIAL PRIMARY KEY, school_name VARCHAR(200), sender_email VARCHAR(200), subscribed_count INT, student_names TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
+        await pool.query("INSERT INTO school_reports (school_name, sender_email, subscribed_count, student_names, note) VALUES ($1,$2,$3,$4,$5)", [sch, req.session.user.email, paidRes.rows.length, namesList, req.body.note || "Subscription verification & commission report"]);
+    } catch (e) { console.error("Report err:", e.message); }
+    res.redirect("/admin/dashboard?reported=1");
 });
 
 app.post("/admin/create-school-admin", async (req, res) => {
@@ -236,6 +248,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

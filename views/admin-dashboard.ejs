@@ -173,7 +173,7 @@ function filterSchoolPortal() {
                 <tr style="background:#f1f5f9;text-align:left;">
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Student Name</th>
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Email</th>
-                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th>
+                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -181,7 +181,7 @@ function filterSchoolPortal() {
                 <tr>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><strong><%= st.first_name %> <%= st.last_name %></strong></td>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.email %></td>
-                    <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.school_name || 'General' %></td>
+                    <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.school_name || 'General' %></td><td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><% if (Number(st.paid_count) > 0) { %><span style="background:#d1fae5;color:#065f46;padding:0.25rem 0.6rem;border-radius:0.4rem;font-weight:bold;font-size:0.8rem;">✓ <%= st.paid_count %> Term(s) Paid</span><% } else { %><span style="background:#f1f5f9;color:#64748b;padding:0.25rem 0.6rem;border-radius:0.4rem;font-size:0.8rem;">Registered (Unpaid)</span><% } %></td>
                 </tr>
                 <% }) %>
             </tbody>
@@ -190,8 +190,36 @@ function filterSchoolPortal() {
         <p style="color:#64748b;margin:0;">No students registered under this school yet.</p>
     <% } %>
 </div>
+<div style="background:#fff;padding:1.5rem;border-radius:1rem;border:1px solid #cbd5e1;margin:1.5rem auto;max-width:1100px;">
+<% if (typeof isSuper !== 'undefined' && isSuper) { %>
+    <h2 style="margin-top:0;color:#1e3a8a;">📩 Incoming Subscribed Student Reports from Schools</h2>
+    <% if (typeof schoolReports !== 'undefined' && schoolReports.length > 0) { %>
+        <% schoolReports.forEach(rep => { %>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:1rem;border-radius:0.65rem;margin-bottom:0.75rem;">
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                    <strong style="color:#1e3a8a;"><%= rep.school_name %> (<%= rep.subscribed_count %> Subscribed Students)</strong>
+                    <span style="font-size:0.82rem;color:#64748b;">Sent by <%= rep.sender_email %></span>
+                </div>
+                <p style="margin:0.45rem 0;font-size:0.9rem;"><strong>Verified Paid Students:</strong> <%= rep.student_names %></p>
+                <% if (rep.note) { %><div style="font-size:0.85rem;color:#475569;"><em>Note: <%= rep.note %></em></div><% } %>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p style="color:#64748b;margin:0;">No school subscription reports submitted yet.</p>
+    <% } %>
+<% } else { %>
+    <h2 style="margin-top:0;color:#1e3a8a;">📤 Submit Subscribed Students List to Head Office</h2>
+    <p style="color:#64748b;font-size:0.9rem;margin-top:0;">Send your verified list of paid/subscribed students directly to the Super Admin office for partnership records and commission settlement.</p>
+    <form action="/admin/submit-subscription-report" method="POST" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+        <input type="text" name="note" placeholder="Optional note (e.g. First Term batch, school bank details or contact)" style="flex:1;min-width:240px;padding:0.7rem;border:1px solid #cbd5e1;border-radius:0.5rem;">
+        <button type="submit" style="background:#10b981;color:#fff;border:none;padding:0.75rem 1.25rem;border-radius:0.5rem;font-weight:bold;cursor:pointer;">📨 Send Subscribed Students to Head Office</button>
+        <a href="https://wa.me(<%= encodeURIComponent(schoolName || '') %>)%20just%20submitted%20our%20subscribed%20students%20report%20on%20the%20portal." target="_blank" style="background:#16a34a;color:#fff;padding:0.75rem 1.15rem;border-radius:0.5rem;font-weight:bold;text-decoration:none;font-size:0.9rem;">💬 Notify via WhatsApp</a>
+    </form>
+<% } %>
+</div>
 </body>
 </html>
+
 
 
 
