@@ -77,6 +77,15 @@ app.get("/", async (req, res) => {
         res.render("index", { winners: wRes.rows.map(w => ({ id: w.id, userId: w.user_id, displayName: w.display_name, state: w.state, level: w.level, award: w.award })) });
     } catch (e) { res.render("index", { winners: [] }); }
 });
+app.get("/contact", (req, res) => res.render("contact", { sent: false }));
+app.post("/contact", async (req, res) => {
+    try {
+        await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
+        await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [req.body.name, req.body.phone, req.body.topic, req.body.message]);
+    } catch (e) {}
+    res.render("contact", { sent: true });
+});
+
 app.get("/login", (req, res) => res.render("login"));
 app.get("/admin", (req, res) => res.redirect("/admin/dashboard"));
 app.post("/login", async (req, res) => {
@@ -211,6 +220,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
