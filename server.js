@@ -1,7 +1,7 @@
 ﻿require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
-const session = require("express-session");
+const session = require("express-session"); const pgSession = require("connect-pg-simple")(session);
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.set("view engine", "ejs");
 app.use("/download", express.static(path.join(__dirname, "uploads")));
-app.use(session({ secret: process.env.SESSION_SECRET || "eduvault_production_secret_2026", resave: false, saveUninitialized: false, cookie: { maxAge: 86400000 } }));
+app.use(session({ store: new pgSession({ pool: pool, createTableIfMissing: true }), secret: process.env.SESSION_SECRET || "eduvault_production_secret_2026", resave: false, saveUninitialized: false, cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } }));
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { if (!fs.existsSync("./uploads")) fs.mkdirSync("./uploads"); cb(null, "./uploads"); },
     filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
@@ -74,8 +74,8 @@ async function syncPaystackPaymentsForEmail(uid, email) {
 app.get("/", async (req, res) => {
     try {
         const wRes = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
-        res.render("index", { winners: wRes.rows.map(w => ({ id: w.id, userId: w.user_id, displayName: w.display_name, state: w.state, level: w.level, award: w.award })) });
-    } catch (e) { res.render("index", { winners: [] }); }
+        res.render("index", { user: req.session.user || null, isAdmin: req.session.isAdmin || false, winners: wRes.rows.map(w => ({ id: w.id, userId: w.user_id, displayName: w.display_name, state: w.state, level: w.level, award: w.award })) });
+    } catch (e) { res.render("index", { user: req.session.user || null, isAdmin: req.session.isAdmin || false, winners: [] }); }
 });
 app.get("/contact", (req, res) => res.render("contact", { sent: false }));
 app.post("/contact", async (req, res) => {
@@ -220,6 +220,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
