@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us | Nigeria Pry & Sec Result Vault</title>
     <style>
-        body { background: #f8fafc; margin: 0; font-family: sans-serif; color: #1e293b; }
-        .navbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+        body { background: #f8fafc; margin: 0; font-family: sans-serif; color: #1e293b; position: relative; }
+        body::before { content: ""; position: fixed; inset: 0; background: url("https://wikimedia.org") center/420px no-repeat; opacity: 0.06; pointer-events: none; z-index: 0; }
+        .navbar, .container { position: relative; z-index: 1; }
+        .navbar { background: rgba(255,255,255,0.95); border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
         .logo { font-size: 1.15rem; font-weight: 900; color: #1e3a8a; text-decoration: none; text-transform: uppercase; }
-        .container { max-width: 980px; margin: 2.5rem auto; padding: 0 1rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .card { background: #fff; padding: 1.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; }
-        .btn-wa { display: inline-block; background: #16a34a; color: #fff; padding: 0.7rem 1.15rem; border-radius: 0.5rem; text-decoration: none; font-weight: bold; margin-top: 0.65rem; margin-right: 0.5rem; font-size: 0.9rem; }
-        .btn-blue { display: inline-block; background: #1e3a8a; color: #fff; padding: 0.7rem 1.15rem; border-radius: 0.5rem; text-decoration: none; font-weight: bold; margin-top: 0.65rem; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 0.75rem; margin: 0.4rem 0 1rem 0; border: 1px solid #cbd5e1; border-radius: 0.5rem; box-sizing: border-box; font-family: inherit; }
+        .container { max-width: 1020px; margin: 2.5rem auto; padding: 0 1rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem; }
+        .card { background: rgba(255,255,255,0.94); padding: 1.6rem; border-radius: 1rem; border: 1px solid #e2e8f0; }
+        .btn-wa { display: inline-block; background: #16a34a; color: #fff; padding: 0.7rem 1.1rem; border-radius: 0.5rem; text-decoration: none; font-weight: bold; margin-top: 0.6rem; margin-right: 0.4rem; font-size: 0.88rem; }
+        .btn-blue { display: inline-block; background: #1e3a8a; color: #fff; padding: 0.7rem 1.1rem; border-radius: 0.5rem; text-decoration: none; font-weight: bold; margin-top: 0.6rem; font-size: 0.88rem; }
+        input, textarea, select { width: 100%; padding: 0.75rem; margin: 0.4rem 0 1rem 0; border: 1px solid #cbd5e1; border-radius: 0.5rem; box-sizing: border-box; font-family: inherit; background: #fff; }
         .btn-submit { background: #1e3a8a; color: #fff; border: none; padding: 0.85rem 1.5rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; }
     </style>
 </head>
@@ -26,20 +28,26 @@
         </div>
     </nav>
     <div class="container">
-        <h1 style="color:#1e3a8a;margin-bottom:0.4rem;">Contact Support & Official Office</h1>
-        <p style="color:#64748b;margin-top:0;margin-bottom:2rem;">Need help unlocking a term vault, verifying a payment, or registering your school anywhere in Nigeria? Reach our support desk directly.</p>
+        <h1 style="color:#1e3a8a;margin-bottom:0.35rem;">Contact Support & Nationwide Offices</h1>
+        <p style="color:#64748b;margin-top:0;margin-bottom:1.75rem;">Reach our support desk or visit any of our offices in Abuja, Lagos, and Sapele, Delta State.</p>
         <div class="grid">
             <div class="card">
-                <h3 style="margin-top:0;color:#1e3a8a;">💬 Phone & WhatsApp Support</h3>
+                <h3 style="margin-top:0;color:#1e3a8a;">💬 Phone, Email & WhatsApp</h3>
                 <p style="margin:0.3rem 0;"><strong>Phone / WhatsApp:</strong> <a href="tel:+2348105752678" style="color:#1e3a8a;text-decoration:none;">+234 810 575 2678</a></p>
-                <p style="margin:0.3rem 0;color:#64748b;font-size:0.9rem;">Mon – Sat, 8:00 AM – 6:00 PM (WAT)</p>
-                <a href="https://wa.me" target="_blank" class="btn-wa">Chat Support on WhatsApp</a>
-                <a href="https://chat.whatsapp.com/Leg0vgDSgp22OIMHlh5E51?s=cl&p=i&iam=2" target="_blank" class="btn-blue">Join Official WhatsApp Group</a>
+                <p style="margin:0.3rem 0;"><strong>Email:</strong> <a href="mailto:info@nigeriapryandsecresultvaultcom.com" style="color:#1e3a8a;word-break:break-all;">info@nigeriapryandsecresultvaultcom.com</a></p>
+                <a href="https://wa.me" target="_blank" class="btn-wa">Chat on WhatsApp</a>
+                <a href="https://whatsapp.com" target="_blank" class="btn-blue">Join WhatsApp Group</a>
             </div>
             <div class="card">
-                <h3 style="margin-top:0;color:#1e3a8a;">🏢 Head Office & Official Email</h3>
-                <p style="margin:0.3rem 0;"><strong>Email:</strong> <a href="mailto:info@nigeriapryandsecresultvaultcom.com" style="color:#1e3a8a;word-break:break-all;">info@nigeriapryandsecresultvaultcom.com</a></p>
-                <p style="margin:0.5rem 0 0 0;"><strong>Head Office Address:</strong><br>Plot 1229, Ladoke Akintola Boulevard, Garki II, Abuja, Nigeria</p>
+                <h3 style="margin-top:0;color:#1e3a8a;">🏛️ Head Office (Abuja)</h3>
+                <p style="margin:0.3rem 0;line-height:1.5;">Plot 1229, Ladoke Akintola Boulevard, Garki II, Abuja.</p>
+                <h3 style="margin:1rem 0 0.3rem 0;color:#1e3a8a;">🏢 Lagos Branch Office</h3>
+                <p style="margin:0;line-height:1.5;">2nd Floor, 52-54 Isaac John St, Ikeja GRA, Lagos 101233, Lagos.</p>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0;color:#1e3a8a;">🏢 Sapele Branch Office (Delta State)</h3>
+                <p style="margin:0.3rem 0;line-height:1.5;">24 Amuogodo, Sapele-Warri Road, Sapele, Delta State.</p>
+                <p style="margin:0.75rem 0 0 0;color:#64748b;font-size:0.88rem;">Office Hours: Mon – Sat, 8:00 AM – 6:00 PM (WAT)</p>
             </div>
         </div>
         <div class="card">
@@ -48,18 +56,11 @@
                 <div style="background:#d1fae5;color:#065f46;padding:1rem;border-radius:0.5rem;margin-bottom:1rem;font-weight:bold;">✓ Message received! Our team will follow up with you shortly.</div>
             <% } %>
             <form action="/contact" method="POST">
-                <label>Full Name</label>
-                <input type="text" name="name" placeholder="e.g. Mr. Oghenekevwe Ojo" required>
-                <label>Phone / WhatsApp Number</label>
-                <input type="text" name="phone" placeholder="e.g. 0810 575 2678" required>
+                <label>Full Name</label><input type="text" name="name" placeholder="e.g. Mr. Oghenekevwe Ojo" required>
+                <label>Phone / WhatsApp Number</label><input type="text" name="phone" placeholder="e.g. 0810 575 2678" required>
                 <label>Inquiry Type</label>
-                <select name="topic">
-                    <option>Parent / Student Vault Support</option>
-                    <option>School Partnership & Registry Onboarding</option>
-                    <option>₦200,000 – ₦5,000,000 Grant Inquiry</option>
-                </select>
-                <label>Message</label>
-                <textarea name="message" rows="4" placeholder="How can we assist you?" required></textarea>
+                <select name="topic"><option>Parent / Student Vault Support</option><option>School Partnership & Registry Onboarding</option><option>₦200,000 – ₦5,000,000 Grant Inquiry</option></select>
+                <label>Message</label><textarea name="message" rows="4" placeholder="How can we assist you?" required></textarea>
                 <button type="submit" class="btn-submit">Send Message</button>
             </form>
         </div>
