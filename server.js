@@ -189,6 +189,23 @@ app.post("/admin/submit-subscription-report", async (req, res) => {
     res.redirect("/admin/dashboard?reported=1");
 });
 
+app.post("/admin/reset-user-password", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const targetId = Number(req.body.targetUserId);
+    const newPass = String(req.body.newPassword || "").trim();
+    if (!targetId || newPass.length < 4) return res.redirect("/admin/dashboard");
+    try {
+        const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+        const sch = req.session.schoolName || "General";
+        if (isSuper) {
+            await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2 AND email != 'admin@school.com'", [newPass, targetId]);
+        } else {
+            await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2 AND is_admin = FALSE AND TRIM(LOWER(school_name)) = TRIM(LOWER($3))", [newPass, targetId, sch]);
+        }
+    } catch (e) { console.error("Admin reset err:", e.message); }
+    res.redirect("/admin/dashboard");
+});
+
 app.post("/admin/create-school-admin", async (req, res) => {
     if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
     const { schoolName, firstName, lastName, email, password, state } = req.body;
@@ -289,6 +306,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

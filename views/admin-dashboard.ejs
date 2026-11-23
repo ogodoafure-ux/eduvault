@@ -173,7 +173,7 @@ function filterSchoolPortal() {
                 <tr style="background:#f1f5f9;text-align:left;">
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Student Name</th>
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Email</th>
-                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th>
+                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Reset Password</th>
                 </tr>
             </thead>
             <tbody>
@@ -182,7 +182,14 @@ function filterSchoolPortal() {
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><strong><%= st.first_name %> <%= st.last_name %></strong></td>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.email %></td>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.school_name || 'General' %></td><td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><% if (Number(st.paid_count) > 0) { %><span style="background:#d1fae5;color:#065f46;padding:0.25rem 0.6rem;border-radius:0.4rem;font-weight:bold;font-size:0.8rem;">✓ <%= st.paid_count %> Term(s) Paid</span><% } else { %><span style="background:#f1f5f9;color:#64748b;padding:0.25rem 0.6rem;border-radius:0.4rem;font-size:0.8rem;">Registered (Unpaid)</span><% } %></td>
-                </tr>
+<td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;">
+    <form action="/admin/reset-user-password" method="POST" style="display:flex;gap:0.35rem;align-items:center;margin:0;">
+        <input type="hidden" name="targetUserId" value="<%= st.id %>">
+        <input type="text" name="newPassword" placeholder="New pass" minlength="4" required style="width:95px;padding:0.35rem 0.5rem;border:1px solid #cbd5e1;border-radius:0.35rem;font-size:0.8rem;">
+        <button type="submit" style="background:#1e3a8a;color:#fff;border:none;padding:0.38rem 0.6rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;">Reset</button>
+    </form>
+</td>
+</tr>
                 <% }) %>
             </tbody>
         </table>
@@ -237,6 +244,7 @@ function filterSchoolPortal() {
 <% } %>
 </body>
 </html>
+
 
 
 
