@@ -26,6 +26,49 @@
     </style>
 </head>
 <body>
+<%
+  const _resKeys = (typeof savedResults !== 'undefined' && savedResults) ? Object.keys(savedResults) : [];
+  const _totalResults = _resKeys.length;
+  const _byClass = {};
+  _resKeys.forEach(k => {
+    const parts = k.split('_');
+    const cls = parts[0] || 'GENERAL';
+    const trm = String(parts[1] || '').trim();
+    if (!_byClass[cls]) _byClass[cls] = new Set();
+    _byClass[cls].add(trm);
+  });
+  let _hasThree = false;
+  let _hasTwoValid = false;
+  Object.values(_byClass).forEach(set => {
+    if (set.has('1') && set.has('2') && set.has('3')) _hasThree = true;
+    if ((set.has('1') && set.has('2')) || (set.has('2') && set.has('3'))) _hasTwoValid = true;
+  });
+%>
+<div style="max-width:1100px;margin:1.25rem auto;padding:1.15rem 1.4rem;border-radius:0.9rem;border:2px solid <%= _hasThree ? '#10b981' : (_hasTwoValid ? '#3b82f6' : '#f59e0b') %>;background:<%= _hasThree ? '#ecfdf5' : (_hasTwoValid ? '#eff6ff' : '#fffbeb') %>;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.85rem;">
+  <div>
+    <div style="font-weight:900;font-size:1rem;color:#1e3a8a;">
+      <% if (_hasThree) { %>
+        🏆 Maximum Grant Entries Active (<%= _totalResults %> Result Sheets in Winner Box!)
+      <% } else if (_hasTwoValid) { %>
+        ✅ Qualified for the ₦200,000 – ₦5,000,000 Annual Grant! (<%= _totalResults %> Terms Uploaded)
+      <% } else { %>
+        ⏳ Grant Qualification Progress: <%= _totalResults %> Term Uploaded (Need 2 Terms to Qualify)
+      <% } %>
+    </div>
+    <div style="font-size:0.88rem;color:#334155;margin-top:0.25rem;">
+      <% if (_hasThree) { %>
+        All <strong>3 term result sheets (1st, 2nd &amp; 3rd Term)</strong> are inside the selection box for maximum winning chances—and stored permanently in your vault for life!
+      <% } else if (_hasTwoValid) { %>
+        You meet the <strong>2-term qualification</strong>! Upload your remaining term so <strong>all 3 result sheets</strong> enter the winner box for even higher chances.
+      <% } else { %>
+        Upload at least <strong>two (2) term results</strong> for the session (<strong>1st &amp; 2nd Term</strong> or <strong>2nd &amp; 3rd Term</strong>) to qualify—or upload <strong>all 3 terms</strong> for maximum chances. All files stay saved <strong>for life</strong>!
+      <% } %>
+    </div>
+  </div>
+  <span style="background:#1e3a8a;color:#fde047;padding:0.45rem 0.9rem;border-radius:999px;font-weight:bold;font-size:0.82rem;white-space:nowrap;">
+    🔒 Lifetime Cloud Storage Active
+  </span>
+</div>
 <div style="position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0.065;">
   <svg width="430" height="430" viewBox="0 0 320 320" xmlns="http://w3.org">
     <!-- Outer Academic Shield -->
@@ -101,6 +144,7 @@
     </div>
 </body>
 </html>
+
 
 
 
