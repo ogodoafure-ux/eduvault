@@ -119,6 +119,34 @@ app.post("/login", async (req, res) => {
         res.send("<h2>Invalid credentials. <a href='/login'>Try again</a>.</h2>");
     } catch (err) { res.status(500).send("Database error."); }
 });
+function makeSchoolSlug(name) {
+    return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+app.get("/school/:slug", async (req, res) => {
+    const slug = makeSchoolSlug(req.params.slug);
+    try {
+        const schRes = await pool.query("SELECT DISTINCT school_name FROM users WHERE is_admin = TRUE AND school_name IS NOT NULL AND school_name != 'General' ORDER BY school_name ASC");
+        const starterSchools = [
+            "Auntie Azuk's Schools, Sapele",
+            "Chude Girls Model Secondary School, Sapele",
+            "Eagles International Academy, Sapele",
+            "Gloryland International Secondary School, Sapele",
+            "Mona School, Sapele",
+            "Obule Integrated Schools, Sapele",
+            "Okotie-Eboh Grammar School, Sapele",
+            "Okpe Grammar School, Sapele",
+            "St. Louis College, Sapele",
+            "Ufuoma Mixed Secondary School, Sapele"
+        ];
+        const allSchools = [...new Set([...schRes.rows.map(r => r.school_name), ...starterSchools])].sort();
+        const matched = allSchools.find(s => makeSchoolSlug(s) === slug) || null;
+        return res.render("register", { schools: allSchools, selectedSchool: matched });
+    } catch (e) {
+        return res.redirect("/register");
+    }
+});
+
 app.get("/register", (req, res) => res.render("register"));
 app.post("/register", async (req, res) => {
     const { email, password, firstName, lastName, role, state, schoolName } = req.body;
@@ -306,6 +334,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

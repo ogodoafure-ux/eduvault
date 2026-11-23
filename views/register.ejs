@@ -37,13 +37,15 @@
             <label>Password</label>
             <input type="password" name="password" required placeholder="Create password">
 
-            <div style="margin-bottom:1rem;"><label style="display:block;font-weight:bold;margin-bottom:0.35rem;">School Name</label><input type="text" name="schoolName" placeholder="e.g. Chude Girls Model School, Sapele" required style="width:100%;padding:0.75rem;border:1px solid #cbd5e1;border-radius:0.5rem;box-sizing:border-box;"></div>
+            <% if (typeof selectedSchool !== "undefined" && selectedSchool) { %><div style="background:#eff6ff;border:1px solid #93c5fd;color:#1e3a8a;padding:0.65rem 0.85rem;border-radius:0.5rem;margin-bottom:0.85rem;font-size:0.9rem;">🏫 <strong>Official School Portal:</strong> <%= selectedSchool %></div><% } %>
+<div style="margin-bottom:1rem;"><label style="display:block;font-weight:bold;margin-bottom:0.35rem;">School Name</label><input type="text" name="schoolName" placeholder="e.g. Chude Girls Model School, Sapele" required style="width:100%;padding:0.75rem;border:1px solid #cbd5e1;border-radius:0.5rem;box-sizing:border-box;"></div>
 <button type="submit">Register Account</button>
         </form>
         <div class="link">Already have an account? <a href="/login">Log In</a></div>
     </div>
 </body>
 </html>
+
 
 
 

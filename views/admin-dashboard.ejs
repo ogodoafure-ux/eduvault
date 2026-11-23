@@ -25,6 +25,19 @@
     </style>
 </head>
 <body>
+<% if (typeof isSuper !== 'undefined' && !isSuper && typeof schoolName !== 'undefined' && schoolName && schoolName !== 'General') { 
+    const _slug = schoolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const _fullLink = 'https://nigeriapryandsecresultvaults.com' + _slug;
+%>
+<div style="background:#eff6ff;border:2px solid #1e3a8a;border-radius:1rem;padding:1.25rem 1.5rem;margin:1.5rem auto;max-width:1100px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+    <div>
+        <div style="font-weight:900;color:#1e3a8a;font-size:1rem;">🔗 Your Official School Registration Link (<%= schoolName %>)</div>
+        <div style="color:#334155;font-size:0.88rem;margin-top:0.2rem;">Share this link in your PTA WhatsApp group — students who register through it are automatically linked to your school!</div>
+        <input type="text" id="schoolCustomLink" value="<%= _fullLink %>" readonly style="margin-top:0.5rem;width:100%;max-width:520px;padding:0.55rem 0.75rem;border:1px solid #93c5fd;border-radius:0.4rem;background:#fff;font-weight:bold;color:#1e3a8a;font-size:0.88rem;">
+    </div>
+    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('schoolCustomLink').value);this.innerText='✓ Link Copied!';" style="background:#16a34a;color:#fff;border:none;padding:0.75rem 1.25rem;border-radius:0.5rem;font-weight:bold;cursor:pointer;">📋 Copy School Link</button>
+</div>
+<% } %>
 <div style='max-width:1100px;margin:1.5rem auto 0 auto;padding:0 1rem;'><% if (typeof isSuper !== 'undefined' && isSuper) { %>
 <div style="background:#fff;padding:1.5rem;border-radius:1rem;border:1px solid #e2e8f0;margin-bottom:1.5rem;">
     <h2 style="margin-top:0;color:#1e3a8a;">🏫 Create Partner School Admin Account</h2>
@@ -40,7 +53,7 @@
     <% if (typeof schoolAdmins !== 'undefined' && schoolAdmins.length > 0) { %>
         <div style="margin-top:1rem;font-size:0.9rem;"><strong>Active School Admins:</strong>
         <% schoolAdmins.forEach(sa => { %>
-            <span style="display:inline-block;background:#eff6ff;color:#1e3a8a;padding:0.3rem 0.65rem;border-radius:0.4rem;margin:0.25rem 0.35rem 0 0;"><strong><%= sa.school_name %></strong> (<%= sa.email %>)</span>
+            <span style="display:inline-block;background:#eff6ff;color:#1e3a8a;padding:0.3rem 0.65rem;border-radius:0.4rem;margin:0.25rem 0.35rem 0 0;"><strong><%= sa.school_name %></strong> (<%= sa.email %>) — <a href="/school/<%= sa.school_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') %>" target="_blank" style="color:#16a34a;font-weight:bold;">Open School Link</a></span>
         <% }) %>
         </div>
     <% } %>
@@ -244,6 +257,7 @@ function filterSchoolPortal() {
 <% } %>
 </body>
 </html>
+
 
 
 
