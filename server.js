@@ -86,6 +86,26 @@ app.post("/contact", async (req, res) => {
     res.render("contact", { sent: true });
 });
 
+app.get("/forgot-password", (req, res) => res.render("forgot-password", { error: null, success: null }));
+app.post("/forgot-password", async (req, res) => {
+    const email = String(req.body.email || "").toLowerCase().trim();
+    const lastName = String(req.body.lastName || "").trim();
+    const newPassword = String(req.body.newPassword || "").trim();
+    if (!email || !lastName || newPassword.length < 4) {
+        return res.render("forgot-password", { error: "Please fill in all fields (minimum 4 characters for password).", success: null });
+    }
+    try {
+        const check = await pool.query("SELECT id FROM users WHERE LOWER(email) = $1 AND TRIM(LOWER(last_name)) = TRIM(LOWER($2))", [email, lastName]);
+        if (check.rows.length === 0) {
+            return res.render("forgot-password", { error: "No account matched that Email and Last Name combination.", success: null });
+        }
+        await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [newPassword, check.rows[0].id]);
+        return res.render("forgot-password", { error: null, success: "✓ Password updated successfully!" });
+    } catch (e) {
+        return res.render("forgot-password", { error: "Unable to reset password right now. Please try again.", success: null });
+    }
+});
+
 app.get("/login", (req, res) => res.render("login"));
 app.get("/admin", (req, res) => res.redirect("/admin/dashboard"));
 app.post("/login", async (req, res) => {
@@ -269,6 +289,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
