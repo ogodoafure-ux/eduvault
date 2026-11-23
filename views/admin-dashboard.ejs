@@ -217,8 +217,27 @@ function filterSchoolPortal() {
     </form>
 <% } %>
 </div>
+<% if (typeof isSuper !== 'undefined' && isSuper) { %>
+<div style="background:#fff;padding:1.5rem;border-radius:1rem;border:1px solid #cbd5e1;margin:1.5rem auto;max-width:1100px;">
+    <h2 style="margin-top:0;color:#1e3a8a;">📬 Contact Us Inquiries (<%= typeof contactMessages !== 'undefined' ? contactMessages.length : 0 %>)</h2>
+    <% if (typeof contactMessages !== 'undefined' && contactMessages.length > 0) { %>
+        <% contactMessages.forEach(m => { %>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:1rem;border-radius:0.65rem;margin-bottom:0.75rem;">
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                    <strong style="color:#1e3a8a;"><%= m.name %> — <%= m.phone %></strong>
+                    <span style="background:#e0e7ff;color:#1e3a8a;padding:0.2rem 0.6rem;border-radius:0.35rem;font-size:0.8rem;font-weight:bold;"><%= m.topic %></span>
+                </div>
+                <p style="margin:0.5rem 0 0 0;color:#334155;font-size:0.92rem;"><%= m.message %></p>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p style="color:#64748b;margin:0;">No contact form messages yet.</p>
+    <% } %>
+</div>
+<% } %>
 </body>
 </html>
+
 
 
 

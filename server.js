@@ -134,8 +134,12 @@ app.get("/admin/dashboard", async (req, res) => {
         const admQuery = isSuper
             ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
             : { rows: [] };
+        await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
         const repQuery = isSuper
             ? await pool.query("SELECT * FROM school_reports ORDER BY id DESC")
+            : { rows: [] };
+        const msgQuery = isSuper
+            ? await pool.query("SELECT * FROM contact_messages ORDER BY id DESC")
             : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
         res.render("admin-dashboard", {
@@ -143,7 +147,7 @@ app.get("/admin/dashboard", async (req, res) => {
             isSuper,
             schoolName: sch,
             schoolAdmins: admQuery.rows,
-            schoolReports: repQuery.rows,
+            schoolReports: repQuery.rows, contactMessages: msgQuery.rows,
             uploadedResults: resQuery.rows,
             students: stuQuery.rows,
             winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code }))
@@ -265,6 +269,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
