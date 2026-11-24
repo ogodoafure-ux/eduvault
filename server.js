@@ -172,13 +172,14 @@ app.get("/admin/dashboard", async (req, res) => {
     try {
         const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
         const sch = req.session.schoolName || "General";
+        await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS commission_settled BOOLEAN DEFAULT FALSE");
         await pool.query("CREATE TABLE IF NOT EXISTS school_reports (id SERIAL PRIMARY KEY, school_name VARCHAR(200), sender_email VARCHAR(200), subscribed_count INT, student_names TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
         const resQuery = isSuper
             ? await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id ORDER BY u.school_name ASC, u.last_name ASC")
             : await pool.query("SELECT r.file_name, r.academic_class, r.term_number, u.first_name, u.last_name, u.email, u.school_name FROM student_results r JOIN users u ON r.user_id = u.id WHERE TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) ORDER BY u.last_name ASC", [sch]);
         const stuQuery = isSuper
-            ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC")
-            : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC", [sch]);
+            ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC")
+            : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC", [sch]);
         const admQuery = isSuper
             ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
             : { rows: [] };
@@ -211,10 +212,25 @@ app.post("/admin/submit-subscription-report", async (req, res) => {
         const sch = req.session.schoolName || "General";
         const paidRes = await pool.query("SELECT DISTINCT u.first_name, u.last_name, u.email FROM users u JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) ORDER BY u.last_name ASC", [sch]);
         const namesList = paidRes.rows.map(r => `${r.first_name} ${r.last_name} (${r.email})`).join(", ") || "No paid students yet";
+        await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS commission_settled BOOLEAN DEFAULT FALSE");
         await pool.query("CREATE TABLE IF NOT EXISTS school_reports (id SERIAL PRIMARY KEY, school_name VARCHAR(200), sender_email VARCHAR(200), subscribed_count INT, student_names TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
         await pool.query("INSERT INTO school_reports (school_name, sender_email, subscribed_count, student_names, note) VALUES ($1,$2,$3,$4,$5)", [sch, req.session.user.email, paidRes.rows.length, namesList, req.body.note || "Subscription verification & commission report"]);
     } catch (e) { console.error("Report err:", e.message); }
     res.redirect("/admin/dashboard?reported=1");
+});
+
+app.post("/admin/settle-student-commission", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+    if (!isSuper) return res.status(403).send("Unauthorized");
+    const targetId = Number(req.body.targetUserId);
+    if (targetId) {
+        try {
+            await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS commission_settled BOOLEAN DEFAULT FALSE");
+            await pool.query("UPDATE subscriptions SET commission_settled = TRUE WHERE user_id = $1", [targetId]);
+        } catch (e) { console.error("Settle err:", e.message); }
+    }
+    res.redirect("/admin/dashboard");
 });
 
 app.post("/admin/reset-user-password", async (req, res) => {
@@ -334,6 +350,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

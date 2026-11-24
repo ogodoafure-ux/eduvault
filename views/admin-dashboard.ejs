@@ -187,7 +187,7 @@ function filterSchoolPortal() {
                 <tr style="background:#f1f5f9;text-align:left;">
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Student Name</th>
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Email</th>
-                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Reset Password</th>
+                    <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School Commission (₦2,500/Term)</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Reset Password</th>
                 </tr>
             </thead>
             <tbody>
@@ -196,6 +196,27 @@ function filterSchoolPortal() {
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><strong><%= st.first_name %> <%= st.last_name %></strong></td>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.email %></td>
                     <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><%= st.school_name || 'General' %></td><td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;"><% if (Number(st.paid_count) > 0) { %><span style="background:#d1fae5;color:#065f46;padding:0.25rem 0.6rem;border-radius:0.4rem;font-weight:bold;font-size:0.8rem;">✓ <%= st.paid_count %> Term(s) Paid</span><% } else { %><span style="background:#f1f5f9;color:#64748b;padding:0.25rem 0.6rem;border-radius:0.4rem;font-size:0.8rem;">Registered (Unpaid)</span><% } %></td>
+<td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;">
+    <% const _paid = Number(st.paid_count || 0); const _settled = Number(st.settled_count || 0); const _pending = _paid - _settled; %>
+    <% if (_paid === 0) { %>
+        <span style="color:#94a3b8;font-size:0.82rem;">—</span>
+    <% } else if (_pending <= 0) { %>
+        <span style="background:#dcfce7;color:#15803d;padding:0.25rem 0.6rem;border-radius:0.4rem;font-weight:bold;font-size:0.8rem;display:inline-block;">✓ Settled (₦<%= (_settled * 2500).toLocaleString() %>)</span>
+    <% } else { %>
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center;">
+            <span style="background:#fef3c7;color:#b45309;padding:0.25rem 0.55rem;border-radius:0.4rem;font-weight:bold;font-size:0.78rem;">⏳ Pending: ₦<%= (_pending * 2500).toLocaleString() %></span>
+            <% if (_settled > 0) { %>
+                <span style="background:#dcfce7;color:#15803d;padding:0.2rem 0.5rem;border-radius:0.4rem;font-size:0.75rem;font-weight:bold;">✓ ₦<%= (_settled * 2500).toLocaleString() %> Settled</span>
+            <% } %>
+            <% if (typeof isSuper !== 'undefined' && isSuper) { %>
+                <form action="/admin/settle-student-commission" method="POST" style="margin:0;">
+                    <input type="hidden" name="targetUserId" value="<%= st.id %>">
+                    <button type="submit" style="background:#16a34a;color:#fff;border:none;padding:0.3rem 0.6rem;border-radius:0.35rem;font-size:0.76rem;font-weight:bold;cursor:pointer;">✓ Mark Settled</button>
+                </form>
+            <% } %>
+        </div>
+    <% } %>
+</td>
 <td style="padding:0.65rem;border-bottom:1px solid #e2e8f0;">
     <form action="/admin/reset-user-password" method="POST" style="display:flex;gap:0.35rem;align-items:center;margin:0;">
         <input type="hidden" name="targetUserId" value="<%= st.id %>">
@@ -258,6 +279,7 @@ function filterSchoolPortal() {
 <% } %>
 </body>
 </html>
+
 
 
 
