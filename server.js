@@ -195,7 +195,7 @@ app.get("/admin/dashboard", async (req, res) => {
             user: req.session.user,
             isSuper,
             schoolName: sch,
-            schoolAdmins: admQuery.rows,
+            schoolAdmins: admQuery.rows, partnerSchoolNames: admQuery.rows.map(a => String(a.school_name || "").trim().toLowerCase()),
             schoolReports: repQuery.rows, contactMessages: msgQuery.rows,
             uploadedResults: resQuery.rows,
             students: stuQuery.rows,
@@ -350,6 +350,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
