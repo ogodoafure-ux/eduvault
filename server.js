@@ -17,7 +17,7 @@ async function initDB() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT 'Nigeria';
             ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
-            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(200) DEFAULT 'General'; UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@school.com';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(200) DEFAULT 'General'; ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_subaccount VARCHAR(100); UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@school.com';
             ALTER TABLE IF EXISTS subscriptions ADD COLUMN IF NOT EXISTS academic_class VARCHAR(255);
             CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255));
             CREATE TABLE IF NOT EXISTS student_results (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255), term_number VARCHAR(50), file_name VARCHAR(255));
@@ -181,7 +181,7 @@ app.get("/admin/dashboard", async (req, res) => {
             ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC")
             : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC", [sch]);
         const admQuery = isSuper
-            ? await pool.query("SELECT id, first_name, last_name, email, school_name FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
+            ? await pool.query("SELECT id, first_name, last_name, email, school_name, paystack_subaccount FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
             : { rows: [] };
         await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
         const repQuery = isSuper
@@ -247,6 +247,21 @@ app.post("/admin/reset-user-password", async (req, res) => {
             await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2 AND is_admin = FALSE AND TRIM(LOWER(school_name)) = TRIM(LOWER($3))", [newPass, targetId, sch]);
         }
     } catch (e) { console.error("Admin reset err:", e.message); }
+    res.redirect("/admin/dashboard");
+});
+
+app.post("/admin/update-school-subaccount", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+    if (!isSuper) return res.status(403).send("Unauthorized");
+    const adminId = Number(req.body.adminId);
+    const subCode = String(req.body.paystackSubaccount || "").trim();
+    if (adminId) {
+        try {
+            await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_subaccount VARCHAR(100)");
+            await pool.query("UPDATE users SET paystack_subaccount = $1 WHERE id = $2", [subCode, adminId]);
+        } catch (e) { console.error("Subaccount update err:", e.message); }
+    }
     res.redirect("/admin/dashboard");
 });
 
@@ -350,6 +365,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
