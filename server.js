@@ -190,13 +190,17 @@ app.get("/admin/dashboard", async (req, res) => {
         const msgQuery = isSuper
             ? await pool.query("SELECT * FROM contact_messages ORDER BY id DESC")
             : { rows: [] };
+        await pool.query("CREATE TABLE IF NOT EXISTS site_reviews (id SERIAL PRIMARY KEY, author_name VARCHAR(120), role_label VARCHAR(120), state_name VARCHAR(80), rating INT DEFAULT 5, comment TEXT, approved BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())");
+        const allRevQuery = isSuper
+            ? await pool.query("SELECT * FROM site_reviews ORDER BY id DESC")
+            : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
         res.render("admin-dashboard", {
             user: req.session.user,
             isSuper,
             schoolName: sch,
             schoolAdmins: admQuery.rows, partnerSchoolNames: admQuery.rows.map(a => String(a.school_name || "").trim().toLowerCase()),
-            schoolReports: repQuery.rows, contactMessages: msgQuery.rows,
+            schoolReports: repQuery.rows, contactMessages: msgQuery.rows, allReviews: allRevQuery.rows,
             uploadedResults: resQuery.rows,
             students: stuQuery.rows,
             winners: winQuery.rows.map(w => ({ id: w.id, displayName: w.display_name, fullName: w.full_name, email: w.email, state: w.state, level: w.level, award: w.award, claimCode: w.claim_code }))
@@ -365,6 +369,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

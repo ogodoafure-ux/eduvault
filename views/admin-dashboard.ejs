@@ -277,8 +277,41 @@ function filterSchoolPortal() {
     <% } %>
 </div>
 <% } %>
+<% if (typeof isSuper !== 'undefined' && isSuper) { %>
+<div style="background:#fff;padding:1.5rem;border-radius:1rem;border:1px solid #cbd5e1;margin:1.5rem auto;max-width:1100px;">
+    <h2 style="margin-top:0;color:#1e3a8a;">💬 Parent &amp; School Reviews Moderation (<%= typeof allReviews !== 'undefined' ? allReviews.length : 0 %>)</h2>
+    <% if (typeof allReviews !== 'undefined' && allReviews.length > 0) { %>
+        <% allReviews.forEach(rv => { %>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:0.9rem;border-radius:0.6rem;margin-bottom:0.65rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+                <div>
+                    <strong><%= rv.author_name %></strong> (<%= rv.role_label %> — <%= rv.state_name %>)
+                    <span style="margin-left:0.5rem;font-size:0.78rem;padding:0.15rem 0.5rem;border-radius:0.35rem;font-weight:bold;background:<%= rv.approved ? '#dcfce7' : '#fef3c7' %>;color:<%= rv.approved ? '#15803d' : '#b45309' %>;"><%= rv.approved ? '✓ Live on Site' : '⏳ Awaiting Approval' %></span>
+                    <p style="margin:0.35rem 0 0 0;color:#334155;font-size:0.9rem;">"<%= rv.comment %>"</p>
+                </div>
+                <div style="display:flex;gap:0.4rem;">
+                    <% if (!rv.approved) { %>
+                        <form action="/admin/toggle-review" method="POST" style="margin:0;">
+                            <input type="hidden" name="revId" value="<%= rv.id %>">
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" style="background:#16a34a;color:#fff;border:none;padding:0.4rem 0.75rem;border-radius:0.35rem;font-weight:bold;cursor:pointer;">✓ Approve &amp; Publish</button>
+                        </form>
+                    <% } %>
+                    <form action="/admin/toggle-review" method="POST" style="margin:0;">
+                        <input type="hidden" name="revId" value="<%= rv.id %>">
+                        <input type="hidden" name="action" value="delete">
+                        <button type="submit" style="background:#dc2626;color:#fff;border:none;padding:0.4rem 0.75rem;border-radius:0.35rem;font-weight:bold;cursor:pointer;">Delete</button>
+                    </form>
+                </div>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p style="color:#64748b;margin:0;">No visitor reviews submitted yet.</p>
+    <% } %>
+</div>
+<% } %>
 </body>
 </html>
+
 
 
 
