@@ -79,54 +79,43 @@ app.get("/", async (req, res) => {
 });
 app.get("/contact", (req, res) => res.render("contact", { sent: false }));
 app.post("/contact", async (req, res) => {
+    const cName = String(req.body.name || "").trim();
+    const cPhone = String(req.body.phone || "").trim();
+    const cTopic = String(req.body.topic || "General").trim();
+    const cMsg = String(req.body.message || "").trim();
     try {
         await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
-        await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [req.body.name, req.body.phone, req.body.topic, req.body.message]);
-        if (process.env.RESEND_API_KEY) {
-            try {
-                const rResp = await fetch("https://resend.com", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        from: "Result Vault Contact <onboarding@resend.dev>",
-                        to: ["info@nigeriapryandsecresultvaults.com"],
-                        subject: `New Website Inquiry: ${topic || "General"} — ${name}`,
-                        html: `<h3>New Contact Us Message</h3><p><strong>Name:</strong> ${name}</p><p><strong>Phone / Email:</strong> ${phone}</p><p><strong>Topic:</strong> ${topic}</p><p><strong>Message:</strong><br>${message}</p>`
-                    })
-                });
-                const rData = await rResp.json();
-                console.log("RESEND RESPONSE:", rResp.status, JSON.stringify(rData));
-            } catch (mailErr) { console.error("RESEND ERROR:", mailErr.message); }
-        } else {
-            console.log("RESEND_API_KEY is missing in environment!");
+        await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [cName, cPhone, cTopic, cMsg]);
+    } catch (e) { console.error("Contact DB err:", e.message); }
+
+    if (process.env.RESEND_API_KEY) {
+        try {
+            const mailRes = await fetch("https://resend.com", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    from: "Result Vault <onboarding@resend.dev>",
+                    to: ["info@nigeriapryandsecresultvaults.com"],
+                    subject: `Website Inquiry: ${cTopic} — ${cName}`,
+                    html: `<h3>New Contact Us Message</h3>
+                           <p><strong>Name:</strong> ${cName}</p>
+                           <p><strong>Phone / Email:</strong> ${cPhone}</p>
+                           <p><strong>Topic:</strong> ${cTopic}</p>
+                           <p><strong>Message:</strong><br>${cMsg}</p>`
+                })
+            });
+            const mailData = await mailRes.json();
+            console.log("Resend API response:", mailRes.status, JSON.stringify(mailData));
+        } catch (mailErr) {
+            console.error("Resend fetch err:", mailErr.message);
         }
-    
-        if (process.env.RESEND_API_KEY) {
-            try {
-                await fetch("https://resend.com", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        from: "Result Vault Contact <onboarding@resend.dev>",
-                        to: ["info@nigeriapryandsecresultvaults.com"],
-                        subject: `New Website Inquiry: ${topic || "General"} — ${name}`,
-                        html: `<h3>New Contact Us Message</h3>
-                               <p><strong>Name:</strong> ${name}</p>
-                               <p><strong>Phone / Email:</strong> ${phone}</p>
-                               <p><strong>Topic:</strong> ${topic}</p>
-                               <p><strong>Message:</strong><br>${message}</p>`
-                    })
-                });
-            } catch (mailErr) { console.error("Resend mail err:", mailErr.message); }
-        }
-} catch (e) {}
-    res.render("contact", { sent: true });
+    } else {
+        console.log("RESEND_API_KEY missing in environment!");
+    }
+    return res.render("contact", { sent: true });
 });
 
 app.get("/forgot-password", (req, res) => res.render("forgot-password", { error: null, success: null }));
@@ -442,6 +431,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
