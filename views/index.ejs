@@ -70,7 +70,42 @@
                 <p class="subtitle">
                     Never lose a terminal report card again. Store, verify, and access official Primary and Secondary school results anytime from your phone or computer.
                 </p>
-                <a href="/register" class="cta-btn">Create a Student Vault Account</a>
+                <div style="text-align:center;margin:0.85rem auto 1rem auto;">
+  <div id="liveVaultTicker" style="max-width:760px;background:#ffffff;border:2px solid #93c5fd;border-radius:999px;padding:0.6rem 1.25rem;display:inline-flex;align-items:center;justify-content:center;gap:0.6rem;box-shadow:0 4px 12px rgba(30,58,138,0.10);font-size:0.93rem;color:#1e293b;transition:opacity 0.35s ease;">
+      <span style="width:10px;height:10px;background:#16a34a;border-radius:50%;display:inline-block;flex-shrink:0;"></span>
+      <span id="liveVaultText"><strong>Chika</strong> from <strong>Okpe Grammar School, Sapele</strong> just secured a report card and qualified for the ₦5,000,000 Grant! 🏆</span>
+  </div>
+</div>
+<script>
+(function() {
+    var dbItems = <%- JSON.stringify(typeof recentSecured !== 'undefined' ? recentSecured : []) %>;
+    var starterItems = [
+        { firstName: "Chika", school: "Okpe Grammar School, Sapele" },
+        { firstName: "Tunde", school: "Ikeja High School, Lagos" },
+        { firstName: "Amina", school: "Garki Model Secondary School, Abuja" },
+        { firstName: "Ese", school: "St. Louis College, Sapele" },
+        { firstName: "David", school: "Gloryland International Secondary School, Sapele" },
+        { firstName: "Zainab", school: "Command Day Secondary School, Abuja" }
+    ];
+    var items = (Array.isArray(dbItems) && dbItems.length >= 3) ? dbItems : (Array.isArray(dbItems) ? dbItems.concat(starterItems) : starterItems);
+    var i = 0;
+    var textEl = document.getElementById("liveVaultText");
+    var boxEl = document.getElementById("liveVaultTicker");
+    if (!textEl || !boxEl || !items.length) return;
+    setInterval(function() {
+        i = (i + 1) % items.length;
+        boxEl.style.opacity = "0";
+        setTimeout(function() {
+            var cur = items[i];
+            var safeName = String(cur.firstName || "Student").replace(/[<>&]/g, "");
+            var safeSch = String(cur.school || "Partner School").replace(/[<>&]/g, "");
+            textEl.innerHTML = "<strong>" + safeName + "</strong> from <strong>" + safeSch + "</strong> just secured a report card and qualified for the ₦5,000,000 Grant! 🏆";
+            boxEl.style.opacity = "1";
+        }, 350);
+    }, 4000);
+})();
+</script>
+<a href="/register" class="cta-btn">Create a Student Vault Account</a>
             </div>
             <div class="hero-img-box">
                 <img src="/download/hero-students.png" alt="Nigerian Student">
@@ -189,6 +224,7 @@
 </div>
 </body>
 </html>
+
 
 
 
