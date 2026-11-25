@@ -82,7 +82,29 @@ app.post("/contact", async (req, res) => {
     try {
         await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
         await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [req.body.name, req.body.phone, req.body.topic, req.body.message]);
-    } catch (e) {}
+    
+        if (process.env.RESEND_API_KEY) {
+            try {
+                await fetch("https://resend.com", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        from: "Result Vault Contact <onboarding@resend.dev>",
+                        to: ["info@nigeriapryandsecresultvaults.com"],
+                        subject: `New Website Inquiry: ${topic || "General"} — ${name}`,
+                        html: `<h3>New Contact Us Message</h3>
+                               <p><strong>Name:</strong> ${name}</p>
+                               <p><strong>Phone / Email:</strong> ${phone}</p>
+                               <p><strong>Topic:</strong> ${topic}</p>
+                               <p><strong>Message:</strong><br>${message}</p>`
+                    })
+                });
+            } catch (mailErr) { console.error("Resend mail err:", mailErr.message); }
+        }
+} catch (e) {}
     res.render("contact", { sent: true });
 });
 
@@ -399,6 +421,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
