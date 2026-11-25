@@ -89,26 +89,34 @@ app.post("/contact", async (req, res) => {
     } catch (e) { console.error("Contact DB err:", e.message); }
 
     const apiKey = (process.env.RESEND_API_KEY || "").trim();
+    console.log("Contact form submitted. RESEND_API_KEY present:", Boolean(apiKey));
     if (apiKey) {
-        for (const recipient of ["ogodoafure@gmail.com", "info@nigeriapryandsecresultvaults.com"]) {
-            try {
-                const mailRes = await fetch("https://resend.com", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        from: "Result Vault <onboarding@resend.dev>",
-                        to: [recipient],
-                        subject: `Website Inquiry: ${cTopic} — ${cName}`,
-                        html: `<h3>New Contact Us Message</h3>
-                               <p><strong>Name:</strong> ${cName}</p>
-                               <p><strong>Phone / Email:</strong> ${cPhone}</p>
-                               <p><strong>Topic:</strong> ${cTopic}</p>
-                               <p><strong>Message:</strong><br>${cMsg}</p>`
-                    })
-                });
+        try {
+            const mailRes = await fetch("https://resend.com", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    from: "Result Vault <onboarding@resend.dev>",
+                    to: ["info@nigeriapryandsecresultvaults.com"],
+                    subject: `Website Inquiry: ${cTopic} — ${cName}`,
+                    html: `<h3>New Contact Us Message</h3>
+                           <p><strong>Name:</strong> ${cName}</p>
+                           <p><strong>Phone / Email:</strong> ${cPhone}</p>
+                           <p><strong>Topic:</strong> ${cTopic}</p>
+                           <p><strong>Message:</strong><br>${cMsg}</p>`
+                })
+            });
+            const mailData = await mailRes.json();
+            console.log("Resend API response:", mailRes.status, JSON.stringify(mailData));
+        } catch (mailErr) {
+            console.error("Resend fetch err:", mailErr.message);
+        }
+    }
+    return res.render("contact", { sent: true });
+});
                 const mailData = await mailRes.json();
                 console.log("Resend [" + recipient + "]:", mailRes.status, JSON.stringify(mailData));
             } catch (mailErr) {
@@ -444,6 +452,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
