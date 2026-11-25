@@ -98,7 +98,7 @@ app.post("/contact", async (req, res) => {
                 },
                 body: JSON.stringify({
                     from: "Result Vault <onboarding@resend.dev>",
-                    to: ["info@nigeriapryandsecresultvaults.com"],
+                    to: ["ogodoafure@gmail.com"],
                     subject: `Website Inquiry: ${cTopic} — ${cName}`,
                     html: `<h3>New Contact Us Message</h3>
                            <p><strong>Name:</strong> ${cName}</p>
@@ -431,6 +431,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
