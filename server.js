@@ -106,6 +106,36 @@ app.post("/forgot-password", async (req, res) => {
     }
 });
 
+app.post("/submit-review", async (req, res) => {
+    const authorName = String(req.body.authorName || "").trim().slice(0, 80);
+    const roleLabel = String(req.body.roleLabel || "Parent").trim().slice(0, 60);
+    const stateName = String(req.body.stateName || "Delta State").trim().slice(0, 60);
+    const rating = Math.min(5, Math.max(1, Number(req.body.rating || 5)));
+    const comment = String(req.body.comment || "").trim().slice(0, 500);
+    if (authorName && comment) {
+        try {
+            await pool.query("CREATE TABLE IF NOT EXISTS site_reviews (id SERIAL PRIMARY KEY, author_name VARCHAR(120), role_label VARCHAR(120), state_name VARCHAR(80), rating INT DEFAULT 5, comment TEXT, approved BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())");
+            await pool.query("INSERT INTO site_reviews (author_name, role_label, state_name, rating, comment, approved) VALUES ($1,$2,$3,$4,$5,FALSE)", [authorName, roleLabel, stateName, rating, comment]);
+        } catch (e) { console.error("Review err:", e.message); }
+    }
+    res.redirect("/?reviewSent=1#community-reviews");
+});
+
+app.post("/admin/toggle-review", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+    if (!isSuper) return res.status(403).send("Unauthorized");
+    const revId = Number(req.body.revId);
+    const action = String(req.body.action || "");
+    if (revId) {
+        try {
+            if (action === "approve") await pool.query("UPDATE site_reviews SET approved = TRUE WHERE id = $1", [revId]);
+            if (action === "delete") await pool.query("DELETE FROM site_reviews WHERE id = $1", [revId]);
+        } catch (e) {}
+    }
+    res.redirect("/admin/dashboard");
+});
+
 app.get("/login", (req, res) => res.render("login"));
 app.get("/admin", (req, res) => res.redirect("/admin/dashboard"));
 app.post("/login", async (req, res) => {
@@ -369,6 +399,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
