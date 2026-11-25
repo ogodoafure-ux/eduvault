@@ -117,6 +117,14 @@ app.post("/contact", async (req, res) => {
     }
     return res.render("contact", { sent: true });
 });
+            const mailData = await mailRes.json();
+            console.log("Resend API response:", mailRes.status, JSON.stringify(mailData));
+        } catch (mailErr) {
+            console.error("Resend fetch err:", mailErr.message);
+        }
+    }
+    return res.render("contact", { sent: true });
+});
                 const mailData = await mailRes.json();
                 console.log("Resend [" + recipient + "]:", mailRes.status, JSON.stringify(mailData));
             } catch (mailErr) {
@@ -452,6 +460,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
