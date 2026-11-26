@@ -300,7 +300,7 @@ app.get("/dashboard", async (req, res) => {
         res.render("dashboard", { user: req.session.user, unlockedClasses: subRes.rows.map(r => r.academic_class), savedResults, publicKey: (process.env.PAYSTACK_PUBLIC_KEY || "").trim(), myWin });
     } catch (err) { res.status(500).send("Error loading dashboard."); }
 });
-app.get("/admin/dashboard", async (req, res) => {
+app.post("/admin/seed-10-schools", async (req, res) => { if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login"); const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com"); if (!isSuper) return res.status(403).send("Unauthorized"); const schools = [["Okpe Grammar School, Sapele","admin@okpegrammar.edu.ng","OkpeAdmin2026"],["St. Louis College, Sapele","admin@stlouissapele.edu.ng","StLouisAdmin2026"],["Obule Integrated Schools, Sapele","admin@obuleschools.edu.ng","ObuleAdmin2026"],["Gloryland International Secondary School, Sapele","admin@glorylandsapele.edu.ng","GloryAdmin2026"],["Zik Grammar School, Sapele","admin@zikgrammar.edu.ng","ZikAdmin2026"],["Hussey College, Warri","admin@husseywarri.edu.ng","HusseyAdmin2026"],["Ikeja High School, Ikeja Lagos","admin@ikejahigh.edu.ng","IkejaAdmin2026"],["Vivian Fowler Memorial College, Lagos","admin@vivianfowler.edu.ng","VivianAdmin2026"],["Garki Model Secondary School, Abuja","admin@garkimodel.edu.ng","GarkiAdmin2026"],["Funtaj International School, Abuja","admin@funtajabuja.edu.ng","FuntajAdmin2026"]]; for (const [sName, sEmail, sPass] of schools) { try { await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, school_name, is_admin) VALUES ($1,$2,$3,$4,$5,$6,TRUE) ON CONFLICT (email) DO NOTHING", [sEmail, sPass, "School", "Admin", "Delta State", sName]); } catch (e) {} } res.redirect("/admin/dashboard"); }); app.get("/admin/dashboard", async (req, res) => {
     if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
     try {
         const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
@@ -519,6 +519,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 

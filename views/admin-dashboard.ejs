@@ -309,8 +309,9 @@ function filterSchoolPortal() {
     <% } %>
 </div>
 <% } %>
-</body>
+<% if (typeof isSuper !== "undefined" && isSuper) { %><form action="/admin/seed-10-schools" method="POST" style="max-width:1100px;margin:1rem auto;text-align:right;"><button type="submit" style="background:#1e3a8a;color:#fde047;border:none;padding:0.65rem 1.2rem;border-radius:0.5rem;font-weight:bold;cursor:pointer;">+ Auto-Create 10 Partner Schools (Sapele, Lagos &amp; Abuja)</button></form><% } %></body>
 </html>
+
 
 
 
