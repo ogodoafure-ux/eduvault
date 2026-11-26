@@ -116,6 +116,46 @@ app.post("/contact", async (req, res) => {
     }
     return res.render("contact", { sent: true });
 });
+app.post("/contact", async (req, res) => {
+    const cName = String(req.body.name || "").trim();
+    const cPhone = String(req.body.phone || "").trim();
+    const cTopic = String(req.body.topic || "General").trim();
+    const cMsg = String(req.body.message || "").trim();
+    try {
+        await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
+        await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [cName, cPhone, cTopic, cMsg]);
+    } catch (e) { console.error("Contact DB err:", e.message); }
+
+    const apiKey = (process.env.RESEND_API_KEY || "").trim();
+    console.log("CONTACT HIT -> RESEND_API_KEY present:", Boolean(apiKey));
+    if (apiKey) {
+        try {
+            const mailRes = await fetch("https://resend.com", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    from: "Result Vault <onboarding@resend.dev>",
+                    to: ["info@nigeriapryandsecresultvaults.com"],
+                    subject: `Website Inquiry: ${cTopic} — ${cName}`,
+                    html: `<h3>New Contact Us Message</h3>
+                           <p><strong>Name:</strong> ${cName}</p>
+                           <p><strong>Phone / Email:</strong> ${cPhone}</p>
+                           <p><strong>Topic:</strong> ${cTopic}</p>
+                           <p><strong>Message:</strong><br>${cMsg}</p>`
+                })
+            });
+            const mailData = await mailRes.json();
+            console.log("Resend API status:", mailRes.status, JSON.stringify(mailData));
+        } catch (mailErr) {
+            console.error("Resend fetch err:", mailErr.message);
+        }
+    }
+    return res.render("contact", { sent: true });
+});
+
 app.get("/login", (req, res) => res.render("login"));
 app.get("/admin", (req, res) => res.redirect("/admin/dashboard"));
 app.post("/login", async (req, res) => {
@@ -379,6 +419,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
