@@ -330,7 +330,7 @@ app.get("/admin/dashboard", async (req, res) => {
                 await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
         await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
         const refLedgerQuery = isSuper ? await pool.query(`
-            SELECT s.id AS sub_id, s.academic_class, s.term_number, COALESCE(s.ref_settled, FALSE) AS ref_settled,
+            SELECT s.id AS sub_id, COALESCE(to_jsonb(s)->>'academic_class', to_jsonb(s)->>'class_level', '') AS academic_class, COALESCE(to_jsonb(s)->>'term_number', to_jsonb(s)->>'term', '') AS term_number, COALESCE(s.ref_settled, FALSE) AS ref_settled,
                    u.first_name, u.last_name, u.school_name,
                    COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) AS active_code,
                    r.full_name AS ref_name, r.phone AS ref_phone, r.bank_name, r.account_number, r.account_name,
@@ -519,6 +519,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
