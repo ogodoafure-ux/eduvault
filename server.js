@@ -203,7 +203,7 @@ app.get("/ref/:code", (req, res) => {
     res.redirect("/register" + (code ? "?ref=" + encodeURIComponent(code) : ""));
 });
 
-app.get("/refer", async (req, res) => {
+app.post("/contact", async (req, res) => { const cName = String(req.body.name || "").trim(); const cPhone = String(req.body.phone || "").trim(); const cTopic = String(req.body.topic || "General").trim(); const cMsg = String(req.body.message || "").trim(); try { await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())"); await pool.query("INSERT INTO contact_messages (name, phone, topic, message) VALUES ($1,$2,$3,$4)", [cName, cPhone, cTopic, cMsg]); } catch (e) {} const apiKey = (process.env.RESEND_API_KEY || "").trim(); console.log("CONTACT FORM -> RESEND_API_KEY set:", Boolean(apiKey)); if (apiKey) { for (const toAddr of ["info@nigeriapryandsecresultvaults.com", "ogodoafure@gmail.com"]) { try { const r = await fetch("https://resend.com", { method: "POST", headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from: "Result Vault <onboarding@resend.dev>", to: [toAddr], subject: "Website Inquiry: " + cTopic + " - " + cName, html: "<h3>New Contact Us Message</h3><p><b>Name:</b> " + cName + "</p><p><b>Phone/Email:</b> " + cPhone + "</p><p><b>Topic:</b> " + cTopic + "</p><p><b>Message:</b><br>" + cMsg + "</p>" }) }); const d = await r.json(); console.log("Resend ->", toAddr, r.status, JSON.stringify(d)); } catch (err) { console.error("Resend err:", err.message); } } } return res.render("contact", { sent: true }); }); app.get("/refer", async (req, res) => {
     const lookup = String(req.query.code || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
     let stats = null;
     if (lookup) {
@@ -519,6 +519,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
