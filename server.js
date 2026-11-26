@@ -17,7 +17,7 @@ async function initDB() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100) DEFAULT 'Nigeria';
             ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url VARCHAR(255);
-            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(200) DEFAULT 'General'; ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_subaccount VARCHAR(100); UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@school.com';
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE; ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(200) DEFAULT 'General'; ALTER TABLE users ADD COLUMN IF NOT EXISTS paystack_subaccount VARCHAR(100); ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50); ALTER TABLE users ADD COLUMN IF NOT EXISTS school_scout_code VARCHAR(50); ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50); ALTER TABLE users ADD COLUMN IF NOT EXISTS school_scout_code VARCHAR(50); UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@school.com';
             ALTER TABLE IF EXISTS subscriptions ADD COLUMN IF NOT EXISTS academic_class VARCHAR(255);
             CREATE TABLE IF NOT EXISTS subscriptions (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255));
             CREATE TABLE IF NOT EXISTS student_results (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE, academic_class VARCHAR(255), term_number VARCHAR(50), file_name VARCHAR(255));
@@ -197,6 +197,89 @@ app.get("/school/:slug", async (req, res) => {
     }
 });
 
+app.get("/ref/:code", (req, res) => {
+    const code = String(req.params.code || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    if (code) req.session.refCode = code;
+    res.redirect("/register" + (code ? "?ref=" + encodeURIComponent(code) : ""));
+});
+
+app.get("/refer", async (req, res) => {
+    const lookup = String(req.query.code || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    let stats = null;
+    if (lookup) {
+        try {
+            await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
+            await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by VARCHAR(50)");
+            await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS school_scout_code VARCHAR(50)");
+            await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
+            const rInfo = await pool.query("SELECT * FROM referrers WHERE ref_code = $1", [lookup]);
+            if (rInfo.rows.length > 0) {
+                const subRows = await pool.query(`
+                    SELECT s.id, COALESCE(s.ref_settled, FALSE) AS ref_settled,
+                           CASE WHEN TRIM(LOWER(u.school_name)) IN (SELECT DISTINCT TRIM(LOWER(school_name)) FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' AND school_name IS NOT NULL AND TRIM(LOWER(school_name)) != 'general') THEN 500 ELSE 1000 END AS comm
+                    FROM subscriptions s
+                    JOIN users u ON s.user_id = u.id
+                    LEFT JOIN users sa ON sa.is_admin = TRUE AND TRIM(LOWER(sa.school_name)) = TRIM(LOWER(u.school_name))
+                    WHERE u.is_admin = FALSE AND (UPPER(COALESCE(u.referred_by,'')) = $1 OR UPPER(COALESCE(sa.school_scout_code,'')) = $1)
+                `, [lookup]);
+                const totalEarned = subRows.rows.reduce((sum, x) => sum + Number(x.comm || 0), 0);
+                const totalPaid = subRows.rows.filter(x => x.ref_settled).reduce((sum, x) => sum + Number(x.comm || 0), 0);
+                stats = { profile: rInfo.rows, paidTerms: subRows.rows.length, totalEarned, totalPaid, pending: totalEarned - totalPaid };
+            }
+        } catch (e) { console.error("Refer lookup err:", e.message); }
+    }
+    res.render("refer", { created: req.query.created || null, lookup, stats, host: req.get("host"), protocol: req.protocol });
+});
+
+app.post("/refer/create", async (req, res) => {
+    const fullName = String(req.body.fullName || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    const bankName = String(req.body.bankName || "").trim();
+    const accountNumber = String(req.body.accountNumber || "").trim();
+    const accountName = String(req.body.accountName || "").trim();
+    let rawCode = String(req.body.customCode || fullName.split(/\s+/)[0] || "REF").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+    if (rawCode.length < 3) rawCode = "REF" + Math.floor(100 + Math.random() * 900);
+    try {
+        await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
+        const exists = await pool.query("SELECT ref_code FROM referrers WHERE ref_code = $1", [rawCode]);
+        if (exists.rows.length > 0) rawCode = rawCode + Math.floor(10 + Math.random() * 89);
+        await pool.query("INSERT INTO referrers (ref_code, full_name, phone, bank_name, account_number, account_name) VALUES ($1,$2,$3,$4,$5,$6)", [rawCode, fullName, phone, bankName, accountNumber, accountName]);
+        return res.redirect("/refer?created=" + encodeURIComponent(rawCode) + "&code=" + encodeURIComponent(rawCode));
+    } catch (e) {
+        console.error("Create ref err:", e.message);
+        return res.redirect("/refer");
+    }
+});
+
+app.post("/admin/settle-ref-commission", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+    if (!isSuper) return res.status(403).send("Unauthorized");
+    const subId = Number(req.body.subId);
+    if (subId) {
+        try {
+            await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
+            await pool.query("UPDATE subscriptions SET ref_settled = TRUE WHERE id = $1", [subId]);
+        } catch (e) {}
+    }
+    res.redirect("/admin/dashboard");
+});
+
+app.post("/admin/update-school-scout", async (req, res) => {
+    if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login");
+    const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com");
+    if (!isSuper) return res.status(403).send("Unauthorized");
+    const adminId = Number(req.body.adminId);
+    const scoutCode = String(req.body.schoolScoutCode || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    if (adminId) {
+        try {
+            await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS school_scout_code VARCHAR(50)");
+            await pool.query("UPDATE users SET school_scout_code = $1 WHERE id = $2", [scoutCode, adminId]);
+        } catch (e) {}
+    }
+    res.redirect("/admin/dashboard");
+});
+
 app.get("/register", (req, res) => res.render("register"));
 app.post("/register", async (req, res) => {
     const { email, password, firstName, lastName, role, state, schoolName } = req.body;
@@ -231,7 +314,7 @@ app.get("/admin/dashboard", async (req, res) => {
             ? await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC")
             : await pool.query("SELECT u.id, u.first_name, u.last_name, u.email, u.school_name, COUNT(s.id) AS paid_count, COUNT(CASE WHEN s.commission_settled = TRUE THEN 1 END) AS settled_count FROM users u LEFT JOIN subscriptions s ON u.id = s.user_id WHERE u.is_admin = FALSE AND TRIM(LOWER(u.school_name)) = TRIM(LOWER($1)) GROUP BY u.id, u.first_name, u.last_name, u.email, u.school_name ORDER BY u.first_name ASC", [sch]);
         const admQuery = isSuper
-            ? await pool.query("SELECT id, first_name, last_name, email, school_name, paystack_subaccount FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
+            ? await pool.query("SELECT id, first_name, last_name, email, school_name, paystack_subaccount, school_scout_code FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' ORDER BY school_name ASC")
             : { rows: [] };
         await pool.query("CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name VARCHAR(150), phone VARCHAR(100), topic VARCHAR(150), message TEXT, created_at TIMESTAMP DEFAULT NOW())");
         const repQuery = isSuper
@@ -244,6 +327,36 @@ app.get("/admin/dashboard", async (req, res) => {
         const allRevQuery = isSuper
             ? await pool.query("SELECT * FROM site_reviews ORDER BY id DESC")
             : { rows: [] };
+                await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
+        await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
+        const refLedgerQuery = isSuper ? await pool.query(`
+            SELECT s.id AS sub_id, s.academic_class, s.term_number, COALESCE(s.ref_settled, FALSE) AS ref_settled,
+                   u.first_name, u.last_name, u.school_name,
+                   COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) AS active_code,
+                   r.full_name AS ref_name, r.phone AS ref_phone, r.bank_name, r.account_number, r.account_name,
+                   CASE WHEN TRIM(LOWER(u.school_name)) IN (SELECT DISTINCT TRIM(LOWER(school_name)) FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' AND school_name IS NOT NULL AND TRIM(LOWER(school_name)) != 'general') THEN 500 ELSE 1000 END AS comm_amount
+            FROM subscriptions s
+            JOIN users u ON s.user_id = u.id
+            LEFT JOIN users sa ON sa.is_admin = TRUE AND TRIM(LOWER(sa.school_name)) = TRIM(LOWER(u.school_name))
+            LEFT JOIN referrers r ON r.ref_code = COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code))
+            WHERE u.is_admin = FALSE AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) IS NOT NULL AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) != ''
+            ORDER BY s.id DESC
+        `) : { rows: [] };
+                await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
+        await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
+        const refLedgerQuery = isSuper ? await pool.query(`
+            SELECT s.id AS sub_id, s.academic_class, s.term_number, COALESCE(s.ref_settled, FALSE) AS ref_settled,
+                   u.first_name, u.last_name, u.school_name,
+                   COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) AS active_code,
+                   r.full_name AS ref_name, r.phone AS ref_phone, r.bank_name, r.account_number, r.account_name,
+                   CASE WHEN TRIM(LOWER(u.school_name)) IN (SELECT DISTINCT TRIM(LOWER(school_name)) FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' AND school_name IS NOT NULL AND TRIM(LOWER(school_name)) != 'general') THEN 500 ELSE 1000 END AS comm_amount
+            FROM subscriptions s
+            JOIN users u ON s.user_id = u.id
+            LEFT JOIN users sa ON sa.is_admin = TRUE AND TRIM(LOWER(sa.school_name)) = TRIM(LOWER(u.school_name))
+            LEFT JOIN referrers r ON r.ref_code = COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code))
+            WHERE u.is_admin = FALSE AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) IS NOT NULL AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) != ''
+            ORDER BY s.id DESC
+        `) : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
         res.render("admin-dashboard", {
             user: req.session.user,
@@ -419,6 +532,8 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
+
 
 
 
