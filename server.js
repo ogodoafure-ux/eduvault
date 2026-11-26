@@ -344,19 +344,6 @@ app.get("/admin/dashboard", async (req, res) => {
         `) : { rows: [] };
                 await pool.query("CREATE TABLE IF NOT EXISTS referrers (id SERIAL PRIMARY KEY, ref_code VARCHAR(50) UNIQUE, full_name VARCHAR(150), phone VARCHAR(60), bank_name VARCHAR(120), account_number VARCHAR(30), account_name VARCHAR(150), created_at TIMESTAMP DEFAULT NOW())");
         await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS ref_settled BOOLEAN DEFAULT FALSE");
-        const refLedgerQuery = isSuper ? await pool.query(`
-            SELECT s.id AS sub_id, s.academic_class, s.term_number, COALESCE(s.ref_settled, FALSE) AS ref_settled,
-                   u.first_name, u.last_name, u.school_name,
-                   COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) AS active_code,
-                   r.full_name AS ref_name, r.phone AS ref_phone, r.bank_name, r.account_number, r.account_name,
-                   CASE WHEN TRIM(LOWER(u.school_name)) IN (SELECT DISTINCT TRIM(LOWER(school_name)) FROM users WHERE is_admin = TRUE AND email != 'admin@school.com' AND school_name IS NOT NULL AND TRIM(LOWER(school_name)) != 'general') THEN 500 ELSE 1000 END AS comm_amount
-            FROM subscriptions s
-            JOIN users u ON s.user_id = u.id
-            LEFT JOIN users sa ON sa.is_admin = TRUE AND TRIM(LOWER(sa.school_name)) = TRIM(LOWER(u.school_name))
-            LEFT JOIN referrers r ON r.ref_code = COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code))
-            WHERE u.is_admin = FALSE AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) IS NOT NULL AND COALESCE(NULLIF(UPPER(u.referred_by),''), UPPER(sa.school_scout_code)) != ''
-            ORDER BY s.id DESC
-        `) : { rows: [] };
         const winQuery = await pool.query("SELECT * FROM grant_winners ORDER BY id DESC");
         res.render("admin-dashboard", {
             user: req.session.user,
@@ -532,6 +519,7 @@ app.get("/unlock-paid", async (req, res) => {
 
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+
 
 
 
