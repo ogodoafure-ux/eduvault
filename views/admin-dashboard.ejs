@@ -116,7 +116,7 @@
                             <th>Award Won</th>
                             <th>Claim Code</th>
                             <th>Action</th>
-                        </tr>
+                        <td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
                     </thead>
                     <tbody>
                         <% winners.forEach(w => { %>
@@ -132,7 +132,7 @@
                                         <button type="submit" class="btn-del">Remove</button>
                                     </form>
                                 </td>
-                            </tr>
+                            <td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
                         <% }) %>
                     </tbody>
                 </table>
@@ -146,7 +146,7 @@
             <% } else { %>
                 <table>
                     <thead>
-                        <tr><th>Student Name</th><th>Email Address</th><th>Class Level</th><th>Academic Term</th><th>Action</th></tr>
+                        <tr><th>Student Name</th><th>Email Address</th><th>Class Level</th><th>Academic Term</th><th>Action</th><td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
                     </thead>
                     <tbody>
                         <% uploadedResults.forEach(row => { %>
@@ -156,7 +156,7 @@
                                 <td><span class="badge"><%= row.academic_class.replace("_", " ") %></span></td>
                                 <td><%= row.term_number %> Term</td>
                                 <td><a href="/download/<%= row.file_name %>" target="_blank" class="download-btn">📄 View Document</a></td>
-                            </tr>
+                            <td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
                         <% }) %>
                     </tbody>
                 </table>
@@ -188,7 +188,7 @@ function filterSchoolPortal() {
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Student Name</th>
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Email</th>
                     <th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Subscription Status</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">School Commission (₦2,500/Term)</th><th style="padding:0.65rem;border-bottom:1px solid #cbd5e1;">Reset Password</th>
-                </tr>
+                <td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
             </thead>
             <tbody>
                 <% students.forEach(st => { %>
@@ -224,7 +224,7 @@ function filterSchoolPortal() {
         <button type="submit" style="background:#1e3a8a;color:#fff;border:none;padding:0.38rem 0.6rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;">Reset</button>
     </form>
 </td>
-</tr>
+<td><form action="/admin/confirm-bonafide" method="POST" style="margin:0;"><input type="hidden" name="studentId" value="<%= typeof u !== "undefined" ? u.id : (typeof s !== "undefined" ? s.id : "") %>"><button type="submit" style="background:<%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "#15803d" : "#1e3a8a" %>;color:#fff;border:none;padding:0.35rem 0.65rem;border-radius:0.35rem;font-size:0.78rem;font-weight:bold;cursor:pointer;"><%= ((typeof u !== "undefined" && u.is_bonafide) || (typeof s !== "undefined" && s.is_bonafide)) ? "✓ Bonafide Confirmed" : "Confirm Bonafide" %></button></form></td></tr>
                 <% }) %>
             </tbody>
         </table>
@@ -311,6 +311,7 @@ function filterSchoolPortal() {
 <% } %>
 <% if (typeof isSuper !== "undefined" && isSuper) { %><form action="/admin/seed-10-schools" method="POST" style="max-width:1100px;margin:1rem auto;text-align:right;"><button type="submit" style="background:#1e3a8a;color:#fde047;border:none;padding:0.65rem 1.2rem;border-radius:0.5rem;font-weight:bold;cursor:pointer;">+ Auto-Create 10 Partner Schools (Sapele, Lagos &amp; Abuja)</button></form><% } %></body>
 </html>
+
 
 
 
