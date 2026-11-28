@@ -61,7 +61,21 @@ async function syncPaystackPaymentsForEmail(uid, email) {
                         for (const tx of data.data) {
                             if (String(tx.customer && tx.customer.email || "").toLowerCase().trim() === String(email).toLowerCase().trim()) {
                                 const m = tx.metadata || {};
-                                await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
+                                // WALLET_START
+if (p.purpose === "wallet_topup" && uid) {
+  const n = Math.round(Number(d.data.amount || 0) / 100);
+  if (n >= 100) {
+    try {
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance INTEGER DEFAULT 0");
+      await pool.query("CREATE TABLE IF NOT EXISTS wallet_ledger (id SERIAL PRIMARY KEY, user_id INTEGER, reference TEXT UNIQUE, amount INTEGER, kind TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
+      const ins = await pool.query("INSERT INTO wallet_ledger (user_id, reference, amount, kind, note) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (reference) DO NOTHING RETURNING id", [uid, ref, n, "TOPUP", "Installment top-up"]);
+      if (ins.rows.length > 0) await pool.query("UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + $1 WHERE id = $2", [n, uid]);
+    } catch (e) {}
+  }
+  return req.session.save(() => res.redirect("/dashboard?wmsg=credited"));
+}
+// WALLET_END
+await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
                             }
                         }
                     }
@@ -297,7 +311,7 @@ app.get("/classmates", async (req, res) => { if (!req.session.userId) return res
         const savedResults = {}; resQuery.rows.forEach(r => { savedResults[r.academic_class + "_TERM_" + r.term_number] = r.file_name; });
         const winQuery = await pool.query("SELECT * FROM grant_winners WHERE user_id = $1 LIMIT 1", [req.session.userId]);
         const myWin = winQuery.rows.length > 0 ? { award: winQuery.rows[0].award, level: winQuery.rows[0].level, claimCode: winQuery.rows[0].claim_code } : null;
-        res.render("dashboard", { user: req.session.user, unlockedClasses: subRes.rows.map(r => r.academic_class), savedResults, publicKey: (process.env.PAYSTACK_PUBLIC_KEY || "").trim(), myWin });
+        res.render("dashboard", { user: req.session.user, unlockedClasses: subRes.rows.map(r => r.academic_class), savedResults, publicKey: (process.env.PAYSTACK_PUBLIC_KEY || "").trim(), myWin, walletBalance, walletLedger, walletMsg: req.query.wmsg || "" });
     } catch (err) { res.status(500).send("Error loading dashboard."); }
 });
 app.post("/admin/seed-10-schools", async (req, res) => { if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login"); const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com"); if (!isSuper) return res.status(403).send("Unauthorized"); const schools = [["Okpe Grammar School, Sapele","admin@okpegrammar.edu.ng","OkpeAdmin2026","Delta State"],["St. Louis College, Sapele","admin@stlouissapele.edu.ng","StLouisAdmin2026","Delta State"],["Obule Integrated Schools, Sapele","admin@obuleschools.edu.ng","ObuleAdmin2026","Delta State"],["Gloryland International Secondary School, Sapele","admin@glorylandsapele.edu.ng","GloryAdmin2026","Delta State"],["Zik Grammar School, Sapele","admin@zikgrammar.edu.ng","ZikAdmin2026","Delta State"],["Hussey College, Warri","admin@husseywarri.edu.ng","HusseyAdmin2026","Delta State"],["Ikeja High School, Ikeja Lagos","admin@ikejahigh.edu.ng","IkejaAdmin2026","Lagos State"],["Vivian Fowler Memorial College, Lagos","admin@vivianfowler.edu.ng","VivianAdmin2026","Lagos State"],["Garki Model Secondary School, Abuja","admin@garkimodel.edu.ng","GarkiAdmin2026","FCT Abuja"],["Funtaj International School, Abuja","admin@funtajabuja.edu.ng","FuntajAdmin2026","FCT Abuja"],["St. Patrick\u0027s College, Asaba","admin@stpatricksasaba.edu.ng","StPatrickAdmin2026","Delta State"],["Federal Government Girls\u0027 College, Ibusa-Asaba","admin@fggcasaba.edu.ng","FggcAsabaAdmin2026","Delta State"],["Graceland International School, Asaba","admin@gracelandasaba.edu.ng","GracelandAdmin2026","Delta State"],["Dennis Memorial Model College, Asaba","admin@dennisasaba.edu.ng","DennisAdmin2026","Delta State"],["Master Care International School, Asaba","admin@mastercareasaba.edu.ng","MasterCareAdmin2026","Delta State"],["Federal Government College, Warri","admin@fgcwarri.edu.ng","FgcWarriAdmin2026","Delta State"],["Our Lady\u0027s High School, Effurun-Warri","admin@ourladyswarri.edu.ng","OurLadyAdmin2026","Delta State"],["DSC Technical High School, Aladja-Warri","admin@dsctechwarri.edu.ng","DscTechAdmin2026","Delta State"],["Urhobo College, Effurun-Warri","admin@urhobocollege.edu.ng","UrhoboAdmin2026","Delta State"],["Hilltop International Academy, Warri","admin@hilltopwarri.edu.ng","HilltopAdmin2026","Delta State"],["Edo College, Benin City","admin@edocollegebenin.edu.ng","EdoCollegeAdmin2026","Edo State"],["Idia College, Benin City","admin@idiacollegebenin.edu.ng","IdiaAdmin2026","Edo State"],["Lumen Christi International High School, Benin","admin@lumenbenin.edu.ng","LumenAdmin2026","Edo State"],["Igbinedion Education Centre, Benin City","admin@igbinedionbenin.edu.ng","IgbinedionAdmin2026","Edo State"],["Word of Faith Group of Schools, Benin City","admin@wordoffaithbenin.edu.ng","WordFaithAdmin2026","Edo State"]]; for (const [sName, sEmail, sPass, sState] of schools) { try { await pool.query("INSERT INTO users (email, password_hash, first_name, last_name, state, school_name, is_admin) VALUES ($1,$2,$3,$4,$5,$6,TRUE) ON CONFLICT (email) DO NOTHING", [sEmail, sPass, "School", "Admin", sState, sName]); } catch (e) {} } res.redirect("/admin/dashboard"); }); app.post("/admin/confirm-bonafide", async (req, res) => { if (!req.session.userId || !req.session.isAdmin) return res.redirect("/login"); const studentId = Number(req.body.studentId); if (studentId) { try { await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bonafide BOOLEAN DEFAULT FALSE"); const isSuper = req.session.isSuperAdmin || (req.session.user && req.session.user.email === "admin@school.com"); if (isSuper) { await pool.query("UPDATE users SET is_bonafide = NOT COALESCE(is_bonafide, FALSE) WHERE id = $1 AND is_admin = FALSE", [studentId]); } else { const me = await pool.query("SELECT school_name FROM users WHERE id = $1", [req.session.userId]); const mySchool = (me.rows[0] && me.rows[0].school_name) ? me.rows[0].school_name.trim().toLowerCase() : ""; await pool.query("UPDATE users SET is_bonafide = NOT COALESCE(is_bonafide, FALSE) WHERE id = $1 AND is_admin = FALSE AND TRIM(LOWER(COALESCE(school_name, ''))) = $2", [studentId, mySchool]); } } catch (e) { console.error("Bonafide err:", e.message); } } res.redirect("/admin/dashboard"); }); app.get("/admin/dashboard", async (req, res) => {
@@ -517,6 +531,40 @@ app.get("/unlock-paid", async (req, res) => {
     res.redirect("/dashboard");
 });
 
+// WROUTES_START
+app.post("/wallet/topup", (req, res) => {
+  if (!req.session.userId) return res.redirect("/login");
+  const amt = Math.round(Number(req.body.amount || 0));
+  if (isNaN(amt) || amt < 500 || amt > 50000) return res.redirect("/dashboard?wmsg=invalid");
+  const payload = JSON.stringify({
+    email: req.session.user.email,
+    amount: amt * 100,
+    currency: "NGN",
+    callback_url: `${req.headers["x-forwarded-proto"] || req.protocol}://${req.get("host")}/paystack/callback`,
+    metadata: { purpose: "wallet_topup", user_id: req.session.userId }
+  });
+  const pReq = https.request({ hostname: "api.paystack.co", port: 443, path: "/transaction/initialize", method: "POST", headers: { Authorization: "Bearer " + String(process.env.PAYSTACK_SECRET_KEY || "").trim(), "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) } }, pRes => {
+    let c = []; pRes.on("data", x => c.push(x));
+    pRes.on("end", () => { try { const d = JSON.parse(Buffer.concat(c).toString()); if (d.status && d.data && d.data.authorization_url) return res.redirect(d.data.authorization_url); res.redirect("/dashboard?wmsg=err"); } catch (e) { res.redirect("/dashboard?wmsg=err"); } });
+  });
+  pReq.on("error", () => res.redirect("/dashboard?wmsg=err"));
+  pReq.write(payload); pReq.end();
+});
+app.post("/wallet/unlock-term", async (req, res) => {
+  if (!req.session.userId) return res.redirect("/login");
+  const cid = String(req.body.classId || "").trim().toUpperCase(), tn = String(req.body.termNumber || "").trim();
+  if (!cid || !["1", "2", "3"].includes(tn)) return res.redirect("/dashboard?wmsg=err");
+  try {
+    const sub = await pool.query("SELECT 1 FROM subscriptions WHERE user_id = $1 AND academic_class = $2 AND term_number = $3", [req.session.userId, cid, tn]);
+    if (sub.rows.length > 0) return res.redirect("/dashboard?wmsg=already");
+    const ded = await pool.query("UPDATE users SET wallet_balance = wallet_balance - 6000 WHERE id = $1 AND COALESCE(wallet_balance, 0) >= 6000 RETURNING wallet_balance", [req.session.userId]);
+    if (ded.rows.length === 0) return res.redirect("/dashboard?wmsg=low");
+    await pool.query("INSERT INTO wallet_ledger (user_id, reference, amount, kind, note) VALUES ($1, $2, $3, $4, $5)", [req.session.userId, "ULK-" + req.session.userId + "-" + Date.now(), -6000, "UNLOCK", "Unlocked " + cid + " T" + tn]);
+    await unlockStudentTerm(req.session.userId, cid, tn);
+    res.redirect("/dashboard?wmsg=unlocked");
+  } catch (e) { res.redirect("/dashboard?wmsg=err"); }
+});
+// WROUTES_END
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/login")));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
 
