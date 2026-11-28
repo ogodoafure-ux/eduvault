@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
 const session = require("express-session"); const pgSession = require("connect-pg-simple")(session);
@@ -338,7 +338,7 @@ app.get("/classmates", async (req, res) => { if (!req.session.userId) return res
         }
       }
       const wb = await pool.query("SELECT COALESCE(wallet_balance, 0) AS wb FROM users WHERE id = $1", [req.session.userId]);
-      if (wb.rows && wb.rows.length > 0) walletBalance = Number(wb.rows.wb || 0);
+      if (wb.rows && wb.rows.length > 0) walletBalance = Number(wb.rows[0].wb || 0);
       walletLedger = (await pool.query("SELECT amount, note FROM wallet_ledger WHERE user_id = $1 ORDER BY id DESC LIMIT 5", [req.session.userId])).rows || [];
     } catch (we) { console.error("Wallet sync err:", we.message); }
     // WALLET_END
