@@ -61,20 +61,20 @@ async function syncPaystackPaymentsForEmail(uid, email) {
                         for (const tx of data.data) {
                             if (String(tx.customer && tx.customer.email || "").toLowerCase().trim() === String(email).toLowerCase().trim()) {
                                 const m = tx.metadata || {};// WALLET_START
-      if (p.purpose === "wallet_topup" && uid) {
-        const n = Math.round(Number(d.data.amount || 0) / 100);
-        if (n >= 100) {
-          try {
-            await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance INTEGER DEFAULT 0");
-            await pool.query("CREATE TABLE IF NOT EXISTS wallet_ledger (id SERIAL PRIMARY KEY, user_id INTEGER, reference TEXT UNIQUE, amount INTEGER, kind TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
-            const ins = await pool.query("INSERT INTO wallet_ledger (user_id, reference, amount, kind, note) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (reference) DO NOTHING RETURNING id", [uid, ref, n, "TOPUP", "Installment top-up"]);
-            if (ins.rows && ins.rows.length > 0) await pool.query("UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + $1 WHERE id = $2", [n, uid]);
-          } catch (we) {}
-        }
-        return req.session.save(() => res.redirect("/dashboard?wmsg=credited"));
-      }
-      // WALLET_END
-      await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
+          if (m.purpose === "wallet_topup" && uid) {
+            const paidNaira = Math.round(Number(d.data.amount || 0) / 100);
+            if (paidNaira >= 100) {
+              try {
+                await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance INTEGER DEFAULT 0");
+                await pool.query("CREATE TABLE IF NOT EXISTS wallet_ledger (id SERIAL PRIMARY KEY, user_id INTEGER, reference TEXT UNIQUE, amount INTEGER, kind TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
+                const ins = await pool.query("INSERT INTO wallet_ledger (user_id, reference, amount, kind, note) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (reference) DO NOTHING RETURNING id", [uid, ref, paidNaira, "TOPUP", "Installment top-up via Paystack"]);
+                if (ins.rows && ins.rows.length > 0) await pool.query("UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + $1 WHERE id = $2", [paidNaira, uid]);
+              } catch (we) {}
+            }
+            return req.session.save(() => res.redirect("/dashboard?wmsg=credited"));
+          }
+          // WALLET_END
+          await unlockStudentTerm(uid, m.class_id || "PRIMARY_1", m.term_number || "1");
                             }
                         }
                     }
@@ -309,16 +309,38 @@ app.get("/classmates", async (req, res) => { if (!req.session.userId) return res
         const resQuery = await pool.query("SELECT academic_class, term_number, file_name FROM student_results WHERE user_id = $1", [req.session.userId]);
         const savedResults = {}; resQuery.rows.forEach(r => { savedResults[r.academic_class + "_TERM_" + r.term_number] = r.file_name; });
         const winQuery = await pool.query("SELECT * FROM grant_winners WHERE user_id = $1 LIMIT 1", [req.session.userId]);
-        const myWin = winQuery.rows.length > 0 ? { award: winQuery.rows[0].award, level: winQuery.rows[0].level, claimCode: winQuery.rows[0].claim_code } : null;
-        // WALLET_START
+        const myWin = winQuery.rows.length > 0 ? { award: winQuery.rows[0].award, level: winQuery.rows[0].level, claimCode: winQuery.rows[0].claim_code } : null;// WALLET_START
     let walletBalance = 0, walletLedger = [];
     try {
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance INTEGER DEFAULT 0");
       await pool.query("CREATE TABLE IF NOT EXISTS wallet_ledger (id SERIAL PRIMARY KEY, user_id INTEGER, reference TEXT UNIQUE, amount INTEGER, kind TEXT, note TEXT, created_at TIMESTAMP DEFAULT NOW())");
+      const uEmail = String(req.session.user && req.session.user.email || "").trim().toLowerCase();
+      if (uEmail && process.env.PAYSTACK_SECRET_KEY) {
+        const psList = await new Promise((resolve) => {
+          const r = https.request({ hostname: "api.paystack.co", port: 443, path: "/transaction?perPage=30&status=success", method: "GET", headers: { Authorization: "Bearer " + String(process.env.PAYSTACK_SECRET_KEY).trim() } }, res2 => {
+            let b = []; res2.on("data", c => b.push(c));
+            res2.on("end", () => { try { resolve(JSON.parse(Buffer.concat(b).toString()).data || []); } catch (e) { resolve([]); } });
+          });
+          r.on("error", () => resolve([])); r.end();
+        });
+        for (const tx of psList) {
+          const meta = tx.metadata || {};
+          const custEmail = String(tx.customer && tx.customer.email || "").trim().toLowerCase();
+          if (meta.purpose === "wallet_topup" && (Number(meta.user_id) === Number(req.session.userId) || custEmail === uEmail)) {
+            const paidNaira = Math.round(Number(tx.amount || 0) / 100);
+            if (paidNaira >= 100 && tx.reference) {
+              const ins = await pool.query("INSERT INTO wallet_ledger (user_id, reference, amount, kind, note) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (reference) DO NOTHING RETURNING id", [req.session.userId, tx.reference, paidNaira, "TOPUP", "Installment top-up via Paystack"]);
+              if (ins.rows && ins.rows.length > 0) {
+                await pool.query("UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + $1 WHERE id = $2", [paidNaira, req.session.userId]);
+              }
+            }
+          }
+        }
+      }
       const wb = await pool.query("SELECT COALESCE(wallet_balance, 0) AS wb FROM users WHERE id = $1", [req.session.userId]);
-      if (wb.rows && wb.rows.length > 0) walletBalance = Number(wb.rows[0].wb || 0);
+      if (wb.rows && wb.rows.length > 0) walletBalance = Number(wb.rows.wb || 0);
       walletLedger = (await pool.query("SELECT amount, note FROM wallet_ledger WHERE user_id = $1 ORDER BY id DESC LIMIT 5", [req.session.userId])).rows || [];
-    } catch (we) { console.error("Wallet fetch:", we.message); }
+    } catch (we) { console.error("Wallet sync err:", we.message); }
     // WALLET_END
     res.render("dashboard", { user: req.session.user, unlockedClasses: subRes.rows.map(r => r.academic_class), savedResults, publicKey: (process.env.PAYSTACK_PUBLIC_KEY || "").trim(), myWin, walletBalance, walletLedger, walletMsg: req.query.wmsg || "" });
     } catch (err) { res.status(500).send("Error loading dashboard."); }
